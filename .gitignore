@@ -1,0 +1,21 @@
+# Babymama Lamda Landing
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Wrangler cache
+.wrangler/
+
+# Backups
+backups/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Env
+.env
+.env.*

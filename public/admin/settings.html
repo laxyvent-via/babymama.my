@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings — Lamda Admin</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/btn.js"></script>
+</head>
+<body>
+  <div class="admin-wrap">
+    <aside class="admin-sidebar">
+      <div style="padding:0 16px 12px;font-weight:700;">👶 Lamda Admin</div>
+      <a href="/admin/dashboard">📦 Packages</a>
+      <a href="/admin/orders">📋 Orders</a>
+      <a href="/admin/settings" class="active">⚙️ Settings</a>
+      <a href="/">← Site</a>
+      <a href="#" onclick="Btn.pulse(this);logout()">🚪 Logout</a>
+    </aside>
+    <main class="admin-main">
+      <h1>⚙️ Settings</h1>
+      <div style="max-width:460px;background:#fff;padding:20px;border-radius:12px;box-shadow:var(--shadow);">
+        <div class="fg"><label>WhatsApp Number (admin terima order)</label><input type="text" id="swa" placeholder="60123456789"></div>
+        <div class="fg"><label>Brand Name</label><input type="text" id="sbr" placeholder="Babymama"></div>
+        <div class="fg"><label>📸 Instagram URL</label><input type="url" id="sig" placeholder="https://www.instagram.com/babymama.centre/"></div>
+        <div class="fg"><label>🎵 TikTok URL</label><input type="url" id="stt" placeholder="https://www.tiktok.com/@babymama.centre"></div>
+        <button class="btn-primary" id="sbtn" onclick="save()">Save Settings</button>
+      </div>
+    </main>
+  </div>
+  <script>
+    (async function i(){if(!(await chk()))return;await load();})();
+    async function chk(){try{const r=await fetch('/api/me',{credentials:'same-origin'});if(!r.ok){location.href='/admin/login';return false}return true}catch(e){location.href='/admin/login';return false}}
+    async function load(){try{const r=await fetch('/api/lamda-settings',{credentials:'same-origin'});const s=await r.json();document.getElementById('swa').value=s.whatsapp_number||'';document.getElementById('sbr').value=s.brand_name||'';document.getElementById('sig').value=s.instagram_url||'';document.getElementById('stt').value=s.tiktok_url||''}catch(e){}}
+    async function save(){
+      const b={whatsapp_number:document.getElementById('swa').value,brand_name:document.getElementById('sbr').value,instagram_url:document.getElementById('sig').value,tiktok_url:document.getElementById('stt').value};
+      try{await Btn.action(document.getElementById('sbtn'),async()=>{const r=await fetch('/api/lamda-settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(b),credentials:'same-origin'});if(!r.ok){const d=await r.json();throw new Error(d.error||'Error')}},{text:'Save Settings',loadingText:'Saving...',successText:'✅ Saved!'});toast('Saved','success')}catch(e){toast(e.message||'Error','error')}
+    }
+    async function logout(){await fetch('/api/logout',{method:'POST',credentials:'same-origin'});location.href='/admin/login'}
+    function toast(m,t){const el=document.createElement('div');el.className='toast '+(t||'success');el.textContent=m;document.body.appendChild(el);setTimeout(()=>el.remove(),3000)}
+    window.save=save;window.logout=logout;
+  </script>
+</body>
+</html>

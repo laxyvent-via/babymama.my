@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gallery — Babymama</title>
+  <meta name="description" content="Lihat semua design, warna dan material kain Babymama.">
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/btn.js"></script>
+</head>
+<body class="gallery-page">
+
+  <!-- Back bar -->
+  <div class="gallery-topbar">
+    <a href="/" class="gallery-back">&larr; Kembali</a>
+    <span class="gallery-title" id="galleryTitle">Gallery</span>
+    <span></span>
+  </div>
+
+  <!-- Package info -->
+  <div id="galleryInfo" class="gallery-info"></div>
+
+  <!-- Images -->
+  <div id="galleryImages" class="gallery-images"></div>
+
+  <!-- ===== ORDER MODAL (satu design) ===== -->
+  <div class="modal-overlay" id="orderModal">
+    <div class="modal">
+      <button class="close" onclick="closeOrder()">&times;</button>
+      <h3 id="orderTitle">Buat Order</h3>
+      <p class="modal-desc" id="orderDesc">Design untuk: <strong id="orderDesignLabel">-</strong></p>
+
+      <div class="fg"><label>Nama *</label><input type="text" id="cName" placeholder="Nama penuh"></div>
+      <div class="fg"><label>No WhatsApp *</label><input type="tel" id="cPhone" placeholder="01xxxxxxxx"></div>
+      <div class="fg"><label>Alamat</label><textarea id="cAddr" placeholder="Alamat penghantaran"></textarea></div>
+
+      <div class="fg"><label>📅 Due Date</label><input type="date" id="dueDate"></div>
+
+      <div class="fg"><label>&#x1F9F5; Sulam (teks)</label><input type="text" id="sulamText" placeholder="Cth: Little AS + teddy bear"></div>
+
+      <div class="summary" id="orderSummary" style="margin-top:14px">
+        <div class="row"><span>Harga Design</span><span id="orderBasePrice">RM 0.00</span></div>
+        <div class="row total"><span>Total</span><span id="orderTotal">RM 0.00</span></div>
+      </div>
+      <div id="priceFinalizeMsg" class="price-finalize-msg" style="display:none;margin-top:14px;padding:14px;background:#FFF3E0;border-radius:12px;text-align:center;font-size:.9rem;font-weight:600;color:#E65100;line-height:1.5;">
+        💬 Harga perlu dibincangkan &amp; difinalizekan dengan Babymama 😊
+      </div>
+
+      <div class="fg" style="margin-top:8px"><label>Nota</label><textarea id="cNote" placeholder="Nota tambahan..."></textarea></div>
+
+      <button class="btn-wa" id="submitBtn">&#x1F4F1; Hantar Order ke WhatsApp</button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="addedToast" class="added-toast">&#x2705; Order dihantar!</div>
+
+  <script>
+    var pkg = null, images = [], settings = {}, selectedImageId = 0;
+    var cat = new URLSearchParams(location.search).get('cat');
+
+    (async function init(){
+      var id = new URLSearchParams(location.search).get('id');
+      if (!id) { showError('Tiada pakej dipilih. <a href="/">Kembali ke katalog</a>'); return; }
+      try {
+        var r = await fetch('/api/packages/' + id);
+        if (!r.ok) throw new Error('Not found');
+        var d = await r.json();
+        pkg = d.package;
+        images = d.images || [];
+        document.body.classList.toggle('gallery-pakej-maryam', pkg && pkg.slug === 'pakej-maryam');
+        document.body.classList.toggle('gallery-pakej-azzahra', pkg && pkg.slug === 'pakej-azzahra');
+        document.body.classList.toggle('gallery-blanket', pkg && pkg.slug === 'blanket');
+        render();
+      } catch(e) {
+        showError('Pakej tidak dijumpai. <a href="/">Kembali ke katalog</a>');
+      }
+      try {
+        var sr = await fetch('/api/lamda-settings');
+        if (sr.ok) settings = await sr.json();
+      } catch(e) {}
+    })();
+
+    function render() {
+      document.title = pkg.name + ' - Babymama';
+      document.getElementById('galleryTitle').textContent = pkg.name;
+
+      var price = pkg.promo_price || pkg.price;
+      var origHtml = pkg.promo_price ? '<span class="orig">RM' + (pkg.price || 0).toFixed(2) + '</span>' : '';
+
+      var infoHtml = '<h1>' + esc(pkg.name) + '</h1>';
+      if (pkg.price_range) {
+        infoHtml += '<div class="gallery-price-range">💰 ' + esc(pkg.price_range) + '</div>';
+      } else {
+        infoHtml += '<div class="gallery-price">RM' + price.toFixed(2) + ' ' + origHtml + '</div>';
+      }
+      if (pkg.description) {
+        infoHtml += renderPackageDetails(pkg.description);
+      }
+      infoHtml += '<p class="gallery-hint">Klik design pilihan untuk order</p>';
+      if (cat) infoHtml += '<p class="gallery-sub-back"><a href="?id=' + pkg.id + '">&larr; Pilih Kategori Lain</a></p>';
+      document.getElementById('galleryInfo').innerHTML = infoHtml;
+
+      var imgsEl = document.getElementById('galleryImages');
+      // Sub-category packages: show sub-frontpage or filtered gallery
+      var subcatSlugs = ['pakej-amina','pakej-aisyah','pakej-maryam','pakej-azzahra'];
+      var isSubcat = subcatSlugs.indexOf(String(pkg.slug || '')) !== -1;
+
+      if (!images.length) {
+        imgsEl.innerHTML = '<div class="gallery-img-card"><div class="gallery-placeholder">&#x1F4E6;</div><button class="btn-add-card">Tiada Design</button></div>';
+        return;
+      }
+
+      if (isSubcat) {
+        var catFull = [], catMinky = [], catOther = [];
+        for (var i = 0; i < images.length; i++) {
+          var g = String(images[i].gallery_category || '');
+          if (g === 'full_cotton') catFull.push(images[i]);
+          else if (g === 'minky_mix_cotton') catMinky.push(images[i]);
+          else catOther.push(images[i]);
+        }
+
+        if (!cat) {
+          // SUB-FRONTPAGE: two big choice cards
+          var firstFull = catFull.length ? catFull[0] : (catOther.length ? catOther[0] : null);
+          var firstMinky = catMinky.length ? catMinky[0] : (catOther.length ? catOther[0] : null);
+          var subHtml = '<div class="sub-frontpage">';
+          if (firstFull) {
+            var fcPrice = pkg.full_cotton_price || price;
+            subHtml += '<a href="?id=' + pkg.id + '&cat=full_cotton" class="sub-fp-card">';
+            subHtml += '<div class="sub-fp-img-wrap"><img src="' + esc(firstFull.image_url) + '" alt="Full Cotton" loading="lazy"></div>';
+            subHtml += '<div class="sub-fp-label">&#x1F9F5; Full Cotton</div>';
+            subHtml += '<div class="sub-fp-price">RM' + fcPrice.toFixed(2) + '</div>';
+            subHtml += '<div class="sub-fp-count">' + catFull.length + ' design</div>';
+            subHtml += '</a>';
+          }
+          if (firstMinky) {
+            var mcPrice = pkg.minky_mix_cotton_price || price;
+            subHtml += '<a href="?id=' + pkg.id + '&cat=minky_mix_cotton" class="sub-fp-card">';
+            subHtml += '<div class="sub-fp-img-wrap"><img src="' + esc(firstMinky.image_url) + '" alt="Minky Mix Cotton" loading="lazy"></div>';
+            subHtml += '<div class="sub-fp-label">&#x1F9F6; Minky Mix Cotton</div>';
+            subHtml += '<div class="sub-fp-price">RM' + mcPrice.toFixed(2) + '</div>';
+            subHtml += '<div class="sub-fp-count">' + catMinky.length + ' design</div>';
+            subHtml += '</a>';
+          }
+          subHtml += '</div>';
+          imgsEl.innerHTML = subHtml;
+          document.getElementById('galleryInfo').querySelector('.gallery-hint').style.display = 'none';
+        } else {
+          // FILTERED GALLERY: show images from selected category (or all if uncategorized)
+          var filtered = [];
+          if (cat === 'full_cotton') filtered = catFull.length ? catFull : catOther;
+          else if (cat === 'minky_mix_cotton') filtered = catMinky.length ? catMinky : catOther;
+
+          if (!filtered.length) {
+            imgsEl.innerHTML = '<div class="gallery-empty">Tiada design dalam kategori ini</div>';
+            return;
+          }
+
+          var catName = cat === 'full_cotton' ? 'Full Cotton' : 'Minky Mix Cotton';
+          if (!(cat === 'full_cotton' ? catFull : catMinky).length) {
+            catName += ' (semua design)';
+          }
+          var h = '<div class="gallery-cat-name">' + catName + '</div><div class="gallery-grid gallery-single-grid">';
+          for (var j = 0; j < filtered.length; j++) {
+            var im = filtered[j];
+            h += '<div class="gallery-img-card"><img src="' + esc(im.image_url) + '" alt="' + esc(catName) + '" loading="lazy"><button class="btn-add-card" onclick="openOrder(' + im.id + ')">&#x1F449; Order Design Ini</button></div>';
+          }
+          h += '</div>';
+          imgsEl.innerHTML = h;
+        }
+      } else {
+        var html = '';
+        for (var i = 0; i < images.length; i++) {
+          var img = images[i];
+          html += '<div class="gallery-img-card">';
+          html += '<img src="' + esc(img.image_url) + '" alt="' + esc(pkg.name) + '" loading="lazy">';
+          html += '<button class="btn-add-card" onclick="openOrder(' + img.id + ')">&#x1F449; Order Design Ini</button>';
+          html += '</div>';
+        }
+        imgsEl.innerHTML = html;
+      }
+    }
+
+    // ---- ORDER MODAL ----
+    var selectedImageObj = null;
+
+    window.openOrder = function(imageId) {
+      // Find the image
+      selectedImageObj = null;
+      for (var i = 0; i < images.length; i++) {
+        if (Number(images[i].id) === Number(imageId)) {
+          selectedImageObj = images[i];
+          break;
+        }
+      }
+      if (!selectedImageObj) { showToast('Ralat: design tidak dijumpai'); return; }
+      selectedImageId = imageId;
+
+      // Reset form
+      document.getElementById('cName').value = '';
+      document.getElementById('cPhone').value = '';
+      document.getElementById('cAddr').value = '';
+      document.getElementById('sulamText').value = '';
+      document.getElementById('cNote').value = '';
+      document.getElementById('dueDate').value = '';
+
+      // Set title
+      var price = pkg.promo_price || pkg.price;
+      if (cat && cat === 'full_cotton' && pkg.full_cotton_price) price = pkg.full_cotton_price;
+      else if (cat && cat === 'minky_mix_cotton' && pkg.minky_mix_cotton_price) price = pkg.minky_mix_cotton_price;
+      document.getElementById('orderTitle').textContent = 'Order: ' + pkg.name;
+      document.getElementById('orderDesignLabel').textContent = 'Design #' + imageId;
+      document.getElementById('orderBasePrice').textContent = 'RM ' + price.toFixed(2);
+
+      document.getElementById('orderTotal').textContent = 'RM ' + price.toFixed(2);
+
+      // Pakej Azzahra — hide price, show finalize message
+      var isAzzahra = pkg && pkg.slug === 'pakej-azzahra';
+      document.getElementById('orderSummary').style.display = isAzzahra ? 'none' : '';
+      document.getElementById('priceFinalizeMsg').style.display = isAzzahra ? '' : 'none';
+
+      document.getElementById('orderModal').classList.add('open');
+    };
+
+    window.closeOrder = function() {
+      document.getElementById('orderModal').classList.remove('open');
+    };
+
+    // Close on overlay click
+    document.getElementById('orderModal').addEventListener('click', function(e) {
+      if (e.target === this) closeOrder();
+    });
+
+    // Submit
+    document.getElementById('submitBtn').addEventListener('click', function() {
+      var name = document.getElementById('cName').value.trim();
+      var phone = document.getElementById('cPhone').value.trim();
+      if (!name || !phone) { showToast('Sila isi nama & no WhatsApp'); return; }
+
+      var isAzzahra = pkg && pkg.slug === 'pakej-azzahra';
+      var price = 0;
+      var total = 0;
+      if (!isAzzahra) {
+        price = pkg.promo_price || pkg.price;
+        if (cat && cat === 'full_cotton' && pkg.full_cotton_price) price = pkg.full_cotton_price;
+        else if (cat && cat === 'minky_mix_cotton' && pkg.minky_mix_cotton_price) price = pkg.minky_mix_cotton_price;
+        total = price;
+      }
+
+      // Build WhatsApp message
+      var addr = document.getElementById('cAddr').value.trim() || '-';
+      var dueDate = document.getElementById('dueDate').value || '-';
+      var sulamText = document.getElementById('sulamText').value.trim() || '-';
+      var nota = document.getElementById('cNote').value.trim() || '-';
+      var imageUrl = (selectedImageObj && selectedImageObj.image_url) ? (window.location.origin + selectedImageObj.image_url) : '-';
+      var money = function(n) { return 'RM' + Number(n || 0).toFixed(2); };
+      var submitTime = new Date().toLocaleString('ms-MY', {
+        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
+      });
+
+      var msg = '*ORDER FORM BABYMAMA BARU*\n\n';
+      msg += '*Detail Customer*\n';
+      msg += 'Nama: ' + name + '\n';
+      msg += 'No Whatsapp: ' + phone + '\n';
+      msg += 'Alamat: ' + addr + '\n\n';
+      msg += '*Detail Order*\n';
+      var catLabel = (cat && cat === 'full_cotton') ? ' — Full Cotton' : (cat && cat === 'minky_mix_cotton') ? ' — Minky Mix Cotton' : '';
+      msg += '\u2022 Pakej: ' + pkg.name + catLabel + ' | Design: #' + selectedImageId + '\n';
+      msg += '\u2022 Text Sulam: ' + sulamText + '\n';
+      msg += '\u2022 Gambar Design: ' + imageUrl + '\n';
+      msg += '\n';
+      msg += '*Appointment*\n';
+      msg += 'Due Date: ' + dueDate + '\n';
+      msg += 'Nota: ' + nota + '\n\n';
+      msg += isAzzahra ? '*Anggaran Harga*\nHarga perlu dibincangkan &amp; difinalizekan dengan Babymama. 😊\n\n' : '*Anggaran Harga*\n' + money(price) + ' x 1 unit\n*Total Anggaran Harga* - ' + money(total) + '\n\n';
+      msg += 'Harga sebenar bergantung kepada pilihan design, add-on dan pengesahan admin.\n';
+      msg += '\uD83D\uDCCC Slot tempahan tertakluk kepada availability Babymama.\n\n';
+      msg += 'Masa Submit: ' + submitTime;
+
+      var waNum = (settings.whatsapp_number || '60123456789').replace(/[^0-9]/g, '');
+      if (waNum.startsWith('0')) waNum = '6' + waNum.substring(1);
+      if (waNum.startsWith('1')) waNum = '6' + waNum;
+      if (!waNum.startsWith('6')) waNum = '6' + waNum;
+
+      var url = 'https://wa.me/' + waNum + '?text=' + encodeURIComponent(msg);
+      window.open(url, '_blank');
+      showToast('Order dihantar ke WhatsApp!');
+      closeOrder();
+    });
+
+    // ---- Utilities ----
+    function showToast(msg) {
+      var t = document.getElementById('addedToast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(t._timeout);
+      t._timeout = setTimeout(function() { t.classList.remove('show'); }, 1800);
+    }
+
+    function showError(msg) {
+      document.getElementById('galleryInfo').innerHTML = '<div class="gallery-error">' + msg + '</div>';
+      document.getElementById('galleryTitle').textContent = 'Error';
+    }
+
+    function renderPackageDetails(raw) {
+      var text = String(raw || '')
+        .replace(/&lt;br\s*\/?&gt;/gi, '<br>')
+        .replace(/<br\s*\/?>(\s*)/gi, '\n')
+        .replace(/\r\n/g, '\n');
+      var items = text.split('\n').map(function(line) {
+        return line.trim().replace(/^[-•]+\s*/, '');
+      }).filter(Boolean);
+      if (!items.length) return '';
+      return '<ul class="gallery-desc-list">' + items.map(function(item) {
+        return '<li>' + esc(item) + '</li>';
+      }).join('') + '</ul>';
+    }
+
+    function esc(s) {
+      if (!s) return '';
+      var d = document.createElement('div');
+      d.appendChild(document.createTextNode(s));
+      return d.innerHTML;
+    }
+  </script>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="bm-footer">
+    <div class="bm-footer-inner">
+      <div class="bm-footer-col">
+        <div class="bm-footer-brand">🧸 BABYMAMA CENTRE</div>
+        <p class="bm-footer-desc">Tilam Baby &amp; Newborn Bedding premium. Design eksklusif, material berkualiti, dijahit dengan penuh kasih sayang.</p>
+      </div>
+      <div class="bm-footer-col">
+        <div class="bm-footer-heading">Pautan</div>
+        <a href="/" class="bm-footer-link">Laman Utama</a>
+        <a href="/#pakej" class="bm-footer-link">Pakej Tilam</a>
+      </div>
+      <div class="bm-footer-col">
+        <div class="bm-footer-heading">Hubungi</div>
+        <a href="#" class="bm-footer-link" id="footerWa">💬 WhatsApp</a>
+        <a href="https://www.instagram.com/babymama.centre/" class="bm-footer-link" target="_blank">📸 Instagram</a>
+        <a href="https://www.tiktok.com/@babymama.centre" class="bm-footer-link" target="_blank">🎵 TikTok</a>
+      </div>
+    </div>
+    <div class="bm-footer-bottom">
+      &copy; 2026 BABYMAMA CENTRE. All rights reserved.
+    </div>
+  </footer>
+</body>
+</html>

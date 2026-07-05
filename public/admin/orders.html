@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orders — Lamda Admin</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/btn.js"></script>
+  <style>
+    .order-tabs { display:flex; gap:8px; margin: 0 0 14px; flex-wrap:wrap; }
+    .order-tab { border:1px solid #eadfd8; background:#fff; color:var(--dark); padding:9px 12px; border-radius:999px; font-weight:800; font-size:.78rem; cursor:pointer; box-shadow:var(--shadow-sm); }
+    .order-tab.active { background:var(--dark); color:#fff; border-color:var(--dark); }
+    .order-detail { font-size: .75rem; color: #888; }
+    .order-detail b { color: var(--pink); }
+    .order-row { cursor: pointer; }
+    .order-row:hover { background: #fdf8f5 !important; }
+    .order-expand { display: none; background: #faf7f3; }
+    .order-expand td { padding: 8px 12px; font-size: .78rem; }
+    .orders-mobile-list { display: none; }
+    .order-card {
+      background: #fff; border: 1px solid #f0ece6; border-radius: 16px;
+      box-shadow: var(--shadow-sm); padding: 14px; margin-bottom: 12px;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .order-card:active { transform: scale(.98); }
+    .order-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+    .order-card-id { font-weight: 800; color: var(--dark); font-size: .92rem; letter-spacing: -.3px; white-space: nowrap; }
+    .order-card-date { color: #999; font-size: .72rem; margin-top: 2px; }
+    .order-status-pill { flex-shrink: 0; padding: 5px 9px; border-radius: 999px; background: #f5f0eb; color: #7a5b4a; font-weight: 800; font-size: .68rem; text-transform: uppercase; }
+    .order-status-pill.sulam { background:#fff4d8; color:#9a6b00; }
+    .order-status-pill.done { background:#dff6e8; color:#217345; }
+    .order-customer { font-weight: 800; color: var(--dark); margin-bottom: 3px; }
+    .order-phone { color: #555; font-size: .83rem; margin-bottom: 10px; }
+    .order-card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0; }
+    .order-mini-box { background: #faf7f3; border-radius: 12px; padding: 9px; }
+    .order-mini-label { color: #999; font-size: .68rem; text-transform: uppercase; font-weight: 800; margin-bottom: 3px; }
+    .order-mini-value { color: var(--dark); font-weight: 800; font-size: .9rem; }
+    .order-note-line { color: #666; font-size: .78rem; line-height: 1.45; margin: 6px 0; }
+    .order-card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+    .order-card-actions a, .order-card-actions button, .table-action-btn { text-align: center; text-decoration: none; border-radius: 10px; padding: 9px 10px; font-weight: 800; font-size: .78rem; border:0; cursor:pointer; }
+    .order-wa-btn { background: #25D366 !important; color: #fff !important; }
+    .order-call-btn { background: #f5f0eb !important; color: var(--dark) !important; }
+    .order-sulam-btn { background:#fff4d8 !important; color:#7a4f00 !important; border:1px solid #e2b74b !important; }
+    .order-complete-btn { background:#0f5132 !important; color:#ffffff !important; border:1px solid #0b3d26 !important; text-shadow:0 1px 1px rgba(0,0,0,.18); }
+    .order-complete-btn:disabled, .order-sulam-btn:disabled { opacity:.9; cursor:not-allowed; }
+    .report-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin: 0 0 14px; }
+    .report-card { background:#fff; border:1px solid #f0ece6; border-radius:16px; padding:14px; box-shadow:var(--shadow-sm); }
+    .report-label { color:#999; font-size:.72rem; font-weight:800; text-transform:uppercase; margin-bottom:5px; }
+    .report-value { color:var(--dark); font-weight:900; font-size:1.12rem; }
+    .report-list { background:#fff; border:1px solid #f0ece6; border-radius:16px; overflow:hidden; box-shadow:var(--shadow-sm); }
+    .report-line { display:flex; justify-content:space-between; gap:10px; padding:11px 13px; border-top:1px solid #f5f0eb; font-size:.82rem; }
+    .report-line:first-child { border-top:0; }
+    .empty-state { text-align:center; padding:30px; color:#999; background:#fff; border-radius:16px; border:1px solid #f0ece6; }
+    @media (max-width: 768px) {
+      .orders-table { display: none; }
+      .orders-mobile-list { display: block; }
+      .admin-main h1 { text-align: center; margin-bottom: 14px; }
+      .order-tabs { justify-content:center; }
+      .order-tab { flex:1; min-width:110px; }
+      .report-grid { grid-template-columns:1fr; }
+      .order-card { padding: 12px; margin-bottom: 10px; border-radius: 14px; }
+      .order-card-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+      .order-card-actions { grid-template-columns: 1fr; gap: 6px; }
+      .order-card-actions:has(.order-wa-btn):has(.order-call-btn):not(:has(.order-sulam-btn)) { grid-template-columns: 1fr 1fr; }
+      .order-card-actions a, .order-card-actions button { padding: 12px 10px; font-size: .82rem; border-radius: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-wrap">
+    <aside class="admin-sidebar">
+      <div style="padding:0 16px 12px;font-weight:700;">👶 Lamda Admin</div>
+      <a href="/admin/dashboard">📦 Packages</a>
+      <a href="/admin/orders" class="active">📋 Orders</a>
+      <a href="/admin/settings">⚙️ Settings</a>
+      <a href="/">← Site</a>
+      <a href="#" onclick="Btn.pulse(this);logout()">🚪 Logout</a>
+    </aside>
+    <main class="admin-main">
+      <h1>📋 Orders</h1>
+      <div class="order-tabs">
+        <button class="order-tab active" data-tab="active" onclick="setTab('active')">Active Order</button>
+        <button class="order-tab" data-tab="completed" onclick="setTab('completed')">Completed Order</button>
+        <button class="order-tab" data-tab="report" onclick="setTab('report')">Report Sale</button>
+      </div>
+      <div id="reportBox" style="display:none"></div>
+      <table class="admin-table orders-table" id="otbl">
+        <thead><tr><th>Order ID</th><th>Customer</th><th>Phone</th><th>Items</th><th>Total</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
+        <tbody id="otb"><tr><td colspan="8" style="text-align:center;padding:30px;">Loading...</td></tr></tbody>
+      </table>
+      <div class="orders-mobile-list" id="orderCards"><div style="text-align:center;padding:30px;color:#999;">Loading...</div></div>
+    </main>
+  </div>
+  <script>
+    let allOrders = [];
+    let currentTab = 'active';
+    (async function i(){if(!(await chk()))return;await load();})();
+    async function chk(){try{const r=await fetch('/api/me',{credentials:'same-origin'});if(!r.ok){location.href='/admin/login';return false}return true}catch(e){location.href='/admin/login';return false}}
+    async function load(){
+      try{
+        const r=await fetch('/api/orders',{credentials:'same-origin'});
+        const d=await r.json();
+        allOrders = d.orders || [];
+        render();
+      }catch(e){
+        document.getElementById('otb').innerHTML='<tr><td colspan="8">Error loading</td></tr>';
+        document.getElementById('orderCards').innerHTML='<div style="padding:20px;color:#c0392b;">Error loading</div>';
+      }
+    }
+    function setTab(tab){currentTab=tab;document.querySelectorAll('.order-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));render()}
+    function isComplete(o){return String(o.progress_status||o.status||'').toUpperCase()==='ORDER_COMPLETE'||String(o.progress_status||'').toUpperCase()==='ORDER COMPLETE'}
+    function isSulam(o){return String(o.progress_status||o.status||'').toUpperCase()==='HANTAR_SULAM'||String(o.progress_status||'').toUpperCase()==='HANTAR SULAM'}
+    function money(n){return 'RM'+Number(n||0).toFixed(2)}
+    function niceStatus(o){if(isComplete(o))return 'Order Complete'; if(isSulam(o))return 'Hantar Sulam'; return o.progress_status||o.status||'NEW'}
+    function statusClass(o){if(isComplete(o))return 'done'; if(isSulam(o))return 'sulam'; return ''}
+    function getOrderSet(){return currentTab==='completed'?allOrders.filter(isComplete):allOrders.filter(o=>!isComplete(o))}
+    function render(){
+      const report = document.getElementById('reportBox');
+      const table = document.getElementById('otbl');
+      const cards = document.getElementById('orderCards');
+      if(currentTab==='report'){
+        report.style.display='block'; table.style.display=''; cards.style.display=''; renderReport(); return;
+      }
+      report.style.display='none'; table.style.display=''; cards.style.display='';
+      const orders = getOrderSet();
+      let html='', cardHtml='';
+      for(const o of orders){
+        const built=buildOrder(o); html+=built.row; cardHtml+=built.card;
+      }
+      const emptyLabel=currentTab==='completed'?'No completed orders':'No active orders';
+      document.getElementById('otb').innerHTML = html || `<tr><td colspan="8" style="text-align:center;padding:30px;">${emptyLabel}</td></tr>`;
+      cards.innerHTML = cardHtml || `<div class="empty-state">${emptyLabel}</div>`;
+    }
+    function buildOrder(o){
+      const phoneDigits=(o.customer_phone||'').replace(/[^0-9]/g,'');
+      const waUrl=`https://wa.me/${phoneDigits}?text=Hi%20${encodeURIComponent(o.customer_name||'')},%20order%20${encodeURIComponent(o.order_id||'')}`;
+      const date=(o.created_at||'').slice(0,10)||'-';
+      const doneDate=(o.completed_at||'').slice(0,10);
+      const total=money(o.total), subtotal=money(o.subtotal);
+      let addonInfo='';
+      if(o.addons){try{const addons=typeof o.addons==='string'?JSON.parse(o.addons):o.addons;if(addons.length){addonInfo='<div class="order-detail">Add-on: '+addons.map(a=>esc(a.name)+' (+'+money(a.price)+')').join(', ')+'</div>';}}catch(e){}}
+      const progressBtns = isComplete(o) ? `<span class="order-status-pill done">Completed</span>` : `<button class="table-action-btn order-sulam-btn" onclick="event.stopPropagation();updateProgress('${escAttr(o.order_id)}','hantar_sulam',this)">Hantar Sulam</button> <button class="table-action-btn order-complete-btn" onclick="event.stopPropagation();updateProgress('${escAttr(o.order_id)}','order_complete',this)">Complete</button>`;
+      const row=`<tr class="order-row" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='table-row'?'none':'table-row'">
+        <td><code>${esc(o.order_id)}</code></td><td>${esc(o.customer_name)}</td><td>${esc(o.customer_phone)}</td><td>${o.item_count||0}</td><td><b>${total}</b></td><td><span class="order-status-pill ${statusClass(o)}">${esc(niceStatus(o))}</span></td><td>${date}</td><td>${progressBtns}</td>
+      </tr><tr class="order-expand"><td colspan="8"><b>Subtotal:</b> ${subtotal}${doneDate?'<div class="order-detail">Completed: '+doneDate+'</div>':''}${addonInfo}${o.customer_address?'<div class="order-detail">Alamat: '+esc(o.customer_address)+'</div>':''}${o.notes?'<div class="order-detail">Nota: '+esc(o.notes)+'</div>':''}<a href="${waUrl}" target="_blank" style="display:inline-block;margin-top:4px;background:#25D366;color:#fff;padding:3px 10px;border-radius:6px;font-size:.75rem;text-decoration:none;">💬 WhatsApp</a></td></tr>`;
+      const actionBlock = isComplete(o) ? `<div class="order-card-actions"><a class="order-wa-btn" href="${waUrl}" target="_blank">💬 WhatsApp</a><a class="order-call-btn" href="tel:${phoneDigits}">📞 Call</a></div>` : `<div class="order-card-actions"><button class="order-sulam-btn" onclick="updateProgress('${escAttr(o.order_id)}','hantar_sulam',this)">🧵 Hantar Sulam</button><button class="order-complete-btn" onclick="updateProgress('${escAttr(o.order_id)}','order_complete',this)">✅ Order Complete</button><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;"><a class="order-wa-btn" href="${waUrl}" target="_blank">💬 WhatsApp</a><a class="order-call-btn" href="tel:${phoneDigits}">📞 Call</a></div></div>`;
+      const card=`<article class="order-card"><div class="order-card-head"><div><div class="order-card-id">${esc(o.order_id)}</div><div class="order-card-date">${date}${doneDate?' • Complete '+doneDate:''}</div></div><span class="order-status-pill ${statusClass(o)}">${esc(niceStatus(o))}</span></div><div class="order-customer">${esc(o.customer_name||'-')}</div><div class="order-phone">📞 ${esc(o.customer_phone||'-')}</div><div class="order-card-grid"><div class="order-mini-box"><div class="order-mini-label">Items</div><div class="order-mini-value">${o.item_count||0}</div></div><div class="order-mini-box"><div class="order-mini-label">Total</div><div class="order-mini-value">${total}</div></div><div class="order-mini-box"><div class="order-mini-label">Subtotal</div><div class="order-mini-value">${subtotal}</div></div><div class="order-mini-box"><div class="order-mini-label">Status</div><div class="order-mini-value">${esc(niceStatus(o))}</div></div></div>${addonInfo.replaceAll('order-detail','order-note-line')}${o.customer_address?'<div class="order-note-line">📍 '+esc(o.customer_address)+'</div>':''}${o.notes?'<div class="order-note-line">📝 '+esc(o.notes)+'</div>':''}${actionBlock}</article>`;
+      return {row,card};
+    }
+    async function updateProgress(orderId, action, btn){
+      if(action==='order_complete' && !confirm('Mark order complete? Order akan hilang dari Active Order.')) return;
+      try{
+        if(btn) btn.disabled=true;
+        const r=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({order_id:orderId,action}),credentials:'same-origin'});
+        const raw=await r.text();
+        let d={};
+        try { d = raw ? JSON.parse(raw) : {}; } catch(parseErr) {
+          throw new Error('API bukan JSON. Refresh page dan cuba lagi. Status: '+r.status);
+        }
+        if(!r.ok) throw new Error(d.error||'Update failed');
+        const o=allOrders.find(x=>x.order_id===orderId);
+        if(o){o.status=d.status;o.progress_status=d.progress_status;if(d.completed_at)o.completed_at=d.completed_at;}
+        render();
+      }catch(e){alert(e.message||'Update failed'); if(btn) btn.disabled=false;}
+    }
+    function renderReport(){
+      const completed=allOrders.filter(isComplete);
+      const today=new Date().toISOString().slice(0,10);
+      const month=today.slice(0,7);
+      const byCreated=o=>(o.completed_at||o.created_at||'').slice(0,10);
+      const sum=arr=>arr.reduce((s,o)=>s+Number(o.total||0),0);
+      const todayOrders=completed.filter(o=>byCreated(o)===today);
+      const monthOrders=completed.filter(o=>byCreated(o).slice(0,7)===month);
+      const lines=completed.map(o=>`<div class="report-line"><span><b>${esc(o.order_id)}</b><br><small>${esc(o.customer_name||'-')} • ${(o.completed_at||o.created_at||'').slice(0,10)||'-'}</small></span><b>${money(o.total)}</b></div>`).join('');
+      document.getElementById('reportBox').innerHTML=`<div class="report-grid"><div class="report-card"><div class="report-label">Sale Hari Ini</div><div class="report-value">${money(sum(todayOrders))}</div></div><div class="report-card"><div class="report-label">Sale Bulan Ini</div><div class="report-value">${money(sum(monthOrders))}</div></div><div class="report-card"><div class="report-label">Completed Order</div><div class="report-value">${completed.length}</div></div></div><div class="report-list">${lines||'<div class="empty-state">Belum ada completed sale</div>'}</div>`;
+    }
+    async function logout(){await fetch('/api/logout',{method:'POST',credentials:'same-origin'});location.href='/admin/login'}
+    function esc(s){if(s===null||s===undefined)return'';const d=document.createElement('div');d.appendChild(document.createTextNode(String(s)));return d.innerHTML}
+    function escAttr(s){return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,'\\&#39;').replace(/"/g,'&quot;')}
+    window.logout=logout; window.setTab=setTab; window.updateProgress=updateProgress;
+  </script>
+</body>
+</html>

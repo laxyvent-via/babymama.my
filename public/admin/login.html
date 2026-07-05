@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login — Lamda</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/btn.js"></script>
+</head>
+<body class="login-page">
+  <div class="login-card">
+    <h1>🔐 Lamda Admin</h1>
+    <div id="err" style="color:#e88080;font-size:.8rem;text-align:center;margin-bottom:10px;display:none;"></div>
+    <div class="fg"><label>Username</label><input type="text" id="user" value="admin"></div>
+    <div class="fg"><label>Password</label><input type="password" id="pass"></div>
+    <button class="btn-primary" id="btn" onclick="doLogin()">Sign In</button>
+    <p style="text-align:center;margin-top:18px;font-size:.82rem;"><a href="/">← Back to site</a></p>
+  </div>
+  <script>
+    (async function(){try{const r=await fetch('/api/me',{credentials:'same-origin'});if(r.ok)location.href='/admin/dashboard';}catch(e){}})();
+    async function doLogin(){
+      const e=document.getElementById('err'); e.style.display='none';
+      try {
+        await Btn.action(document.getElementById('btn'), async ()=>{
+          const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:document.getElementById('user').value,password:document.getElementById('pass').value})});
+          if(!r.ok){const d=await r.json();throw new Error(d.error||'Login failed')}
+          location.href='/admin/dashboard';
+        }, {text:'Sign In', loadingText:'Signing in...', successText:'✅ Redirecting...', errorText:'❌ Login Failed'});
+      } catch(x) {
+        e.textContent = x.message || 'Network error';
+        e.style.display = 'block';
+      }
+    }
+    window.doLogin=doLogin;
+  </script>
+</body>
+</html>

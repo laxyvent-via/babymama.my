@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BABYMAMA CENTRE — Tilam Baby & Newborn Bedding</title>
+  <meta name="description" content="Pilih design tilam baby, lihat warna & material, order terus dari gallery Babymama.">
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/btn.js"></script>
+</head>
+<body>
+
+  <!-- Admin Bar -->
+  <div class="bm-admin-bar" id="adminBanner">
+    <span>🔧 Admin</span>
+    <a href="/admin/dashboard.html">Dashboard</a>
+    <span>|</span>
+    <a href="#" onclick="Btn.pulse(this);adminLogout()">Logout</a>
+  </div>
+
+  <!-- Header / Intro BABYMAMA CENTRE -->
+  <header class="baby-hero">
+    <div class="bm-hero-wrap">
+      <nav class="bm-nav">
+        <a href="/" class="bm-brand-box">
+          <div class="bm-brand-icon">🧸</div>
+          <div class="bm-brand-text">
+            <strong>BABYMAMA CENTRE</strong>
+            <span>Tilam Baby & Newborn Bedding</span>
+          </div>
+        </a>
+        <a href="#pakej" class="bm-nav-pill">📦 Lihat Pakej</a>
+      </nav>
+
+      <section class="bm-hero-content">
+        <div class="bm-eyebrow">☁️ Premium Baby Comfort Catalogue</div>
+        <h1>
+          Tidur Si Manja Lebih Selesa,<br>
+          <span>Mama Pun Lebih Tenang</span>
+        </h1>
+        <p>
+          Pilih design tilam baby yang mama suka, lihat
+          <span class="bm-highlight">warna, material &amp; gallery</span>,
+          kemudian tekan <span class="bm-highlight">Tambah ke Order</span>
+          untuk buat pesanan.
+        </p>
+
+        <div class="bm-hero-actions">
+          <a href="#pakej" class="bm-btn bm-btn-primary">📦 Lihat Pakej Tilam</a>
+        </div>
+      </section>
+    </div>
+  </header>
+
+  <!-- Section intro sebelum list produk -->
+  <section class="bm-pkg-intro" id="pakej">
+    <div class="bm-box-icon">📦</div>
+    <h2>Pakej Tilam Baby Pilihan Mama</h2>
+    <p>
+      Klik gambar pakej untuk lihat design penuh, pilihan warna, material dan detail set.
+      Bila dah berkenan, tekan butang order untuk masukkan dalam cart.
+    </p>
+  </section>
+    <div class="pkg-grid" id="grid">
+      <div id="loadingSkeleton">
+        <div class="skeleton skeleton-card"></div>
+        <div class="skeleton skeleton-card" style="height:280px"></div>
+        <div class="skeleton skeleton-card" style="height:260px"></div>
+      </div>
+    </div>
+    <div id="loadingText" class="loading-txt" style="display:none">Memuatkan...</div>
+  </section>
+
+  <!-- Cart Floating Bar -->
+  <div id="cartBar" style="display:none">
+    <div class="cart-bar-inner">
+      <div>
+        <span class="cart-bar-count" id="cartCount">0 item</span>
+        <span class="cart-bar-total" id="cartTotal">RM 0.00</span>
+      </div>
+      <button class="btn-cart-open" onclick="Btn.pulse(this);openCart()">🛒 Lihat Order</button>
+    </div>
+  </div>
+
+  <!-- Floating WhatsApp -->
+  <a href="#" id="fabWa" class="fab-wa">💬</a>
+
+  <!-- ===== ORDER MODAL ===== -->
+  <div class="modal-overlay" id="cartModal">
+    <div class="modal">
+      <button class="close" onclick="closeCart()">✕</button>
+      <h3>🛒 Order Anda</h3>
+
+      <div id="cartItems" class="cart-items"></div>
+
+      <div class="summary" style="margin-top:12px;">
+        <div class="row"><span>Subtotal</span><span id="cartSubtotal">RM 0.00</span></div>
+        <div class="row total"><span>Total</span><span id="cartTotalModal">RM 0.00</span></div>
+      </div>
+
+      <div class="fg" style="margin-top:12px;"><label>Nama *</label><input type="text" id="cName" placeholder="Nama penuh"></div>
+      <div class="fg"><label>No WhatsApp *</label><input type="tel" id="cPhone" placeholder="01xxxxxxxx"></div>
+      <div class="fg"><label>Alamat</label><textarea id="cAddr" placeholder="Alamat penghantaran"></textarea></div>
+
+      <div class="fg"><label>📅 Due Date</label><input type="date" id="dueDate"></div>
+
+      <div class="fg"><label>🧵 Sulam (teks)</label><input type="text" id="sulamText" placeholder="Cth: Little AS + teddy bear"></div>
+      <div class="fg"><label>Nota</label><textarea id="cNote" placeholder="Nota tambahan..."></textarea></div>
+
+      <button class="btn-wa" id="submitBtn" onclick="submitOrder()">📱 Hantar Order ke WhatsApp</button>
+    </div>
+  </div>
+
+  <div id="addedToast" class="added-toast">✅ Ditambah ke order!</div>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="bm-footer">
+    <div class="bm-footer-inner">
+      <div class="bm-footer-col">
+        <div class="bm-footer-brand">🧸 BABYMAMA CENTRE</div>
+        <p class="bm-footer-desc">Tilam Baby &amp; Newborn Bedding premium. Design eksklusif, material berkualiti, dijahit dengan penuh kasih sayang.</p>
+      </div>
+      <div class="bm-footer-col">
+        <div class="bm-footer-heading">Pautan</div>
+        <a href="/" class="bm-footer-link">Laman Utama</a>
+        <a href="#pakej" class="bm-footer-link">Pakej Tilam</a>
+      </div>
+      <div class="bm-footer-col">
+        <div class="bm-footer-heading">Hubungi</div>
+        <a href="#" class="bm-footer-link" id="footerWa">💬 WhatsApp</a>
+        <a href="https://www.instagram.com/babymama.centre/" class="bm-footer-link" id="footerIg" target="_blank">📸 Instagram</a>
+        <a href="https://www.tiktok.com/@babymama.centre" class="bm-footer-link" id="footerTt" target="_blank">🎵 TikTok</a>
+      </div>
+    </div>
+    <div class="bm-footer-bottom">
+      &copy; 2026 BABYMAMA CENTRE. All rights reserved. Crafted with ❤️ for ibu &amp; baby.
+    </div>
+  </footer>
+
+  <script>
+    let pkgs=[], cart=[], settings={whatsapp_number:'60123456789'}, isAdmin=false;
+
+    (async function init(){
+      cart = getCart();
+      await checkAdmin();
+      await loadSettings();
+      await loadPkgs();
+      updateCartBar();
+      // Auto-open cart if coming from gallery
+      if (new URLSearchParams(location.search).get('openCart') === '1') {
+        setTimeout(openCart, 300);
+        history.replaceState(null, '', '/');
+      }
+    })();
+
+    function getCart() {
+      try { return JSON.parse(localStorage.getItem('lamda_cart') || '[]'); } catch(e) { return []; }
+    }
+    function saveCart() { localStorage.setItem('lamda_cart', JSON.stringify(cart)); }
+
+    async function checkAdmin(){
+      try{const r=await fetch('/api/me',{credentials:'same-origin'});if(r.ok){isAdmin=true;document.getElementById('adminBanner').classList.add('show')}}catch(e){}
+    }
+
+    async function loadSettings(){
+      try{const r=await fetch('/api/lamda-settings');if(r.ok)settings=await r.json()}catch(e){}
+      const n=(settings.whatsapp_number||'60123456789').replace(/[^0-9]/g,'');
+      document.getElementById('fabWa').href='https://wa.me/'+n+'?text=Hi%20Babymama%2C%20saya%20nak%20tanya%20tentang%20pakej.';
+      const fw=document.getElementById('footerWa'); if(fw) fw.href='https://wa.me/'+n+'?text=Hi%20Babymama%2C%20saya%20nak%20tanya.';
+      const fi=document.getElementById('footerIg'); if(fi&&settings.instagram_url) fi.href=settings.instagram_url;
+      const ft=document.getElementById('footerTt'); if(ft&&settings.tiktok_url) ft.href=settings.tiktok_url;
+    }
+
+    async function loadPkgs(){
+      try{
+        const r=await fetch('/api/packages');
+        const d=await r.json(); pkgs=d.packages||[];
+        document.getElementById('loadingSkeleton').style.display='none';
+        renderGrid();
+      }catch(e){
+        document.getElementById('loadingSkeleton').style.display='none';
+        document.getElementById('grid').innerHTML='<p class="err-txt">Gagal memuatkan pakej.</p>'
+      }
+    }
+
+    function renderGrid(){
+      const g=document.getElementById('grid');
+      if(!pkgs.length){g.innerHTML='<p class="empty-txt">Tiada pakej buat masa ini.</p>';return}
+      g.innerHTML=pkgs.map(p=>{
+        const price=p.promo_price||p.price;
+        const orig=p.promo_price?`<span class="orig">RM${(p.price||0).toFixed(2)}</span>`:'';
+        const img=p.preview_image||'';
+        const badgeText=(p.badge||'').trim();
+        const isShippingBadge=/shipping/i.test(badgeText);
+        const badgeLabel=isShippingBadge ? 'FREE SHIPPING' : badgeText;
+        const badge=p.badge
+          ? (isShippingBadge
+            ? `<div class="badge badge-shipping-img"><img src="/images/free-shipping-badge-clean.png" alt="${esc(badgeLabel)}" loading="lazy"></div>`
+            : `<div class="badge"><span>${esc(badgeLabel)}</span></div>`)
+          : '';
+        const imgHtml=img
+          ?`<img src="${esc(img)}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">`
+          :'';
+        const added=cart.some(c=>Number(c.id)===Number(p.id));
+        const squareCard=['pakej-maryam','pakej-azzahra','blanket'].includes(p.slug)?'pkg-card-square':'';
+        const priceHtml = p.price_range ? esc(p.price_range) : 'RM' + price.toFixed(2);
+        return `<div class="pkg-card ${squareCard} ${added?'added':''}" onclick="location.href='/gallery?id=${p.id}'">
+          <div class="img-wrap">
+            ${badge}
+            ${imgHtml}
+            <div class="img-fallback" style="${img?'display:none':''}">📦</div>
+            <div class="tap-overlay">Lihat Gallery</div>
+          </div>
+          <div class="info">
+            <div class="name">${esc(p.name)}</div>
+            <div class="price">${priceHtml} ${orig}</div>
+            <div class="card-status">${added?'✅ Dalam cart':'Klik untuk lihat design & warna'}</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    function updateCartBar(){
+      const bar=document.getElementById('cartBar');
+      if(!cart.length){bar.style.display='none';return}
+      bar.style.display='block';
+      const cnt=cart.reduce((s,c)=>s+c.qty,0);
+      const total=cart.reduce((s,c)=>s+(c.price*c.qty),0);
+      document.getElementById('cartCount').textContent=cnt+' item'+(cnt>1?'s':'');
+      document.getElementById('cartTotal').textContent='RM '+total.toFixed(2);
+    }
+
+    function openCart(){
+      if(!cart.length)return;
+      refreshCartModal();
+      document.getElementById('cartModal').classList.add('open');
+    }
+
+    function refreshCartModal(){
+      const items=document.getElementById('cartItems');
+      let subtotal = 0;
+      items.innerHTML=cart.map((c,i)=>{
+        const line = c.price * c.qty;
+        subtotal += line;
+        return `<div class="cart-item-row">
+          <span class="cart-item-name">${esc(c.name)}</span>
+          <span class="cart-item-meta">RM${c.price.toFixed(2)} × ${c.qty} = <b>RM${line.toFixed(2)}</b></span>
+          <span class="cart-item-qty">
+            <button onclick="Btn.pulse(this);chgQty(${i},-1)">−</button>
+            <span>${c.qty}</span>
+            <button onclick="Btn.pulse(this);chgQty(${i},1)">+</button>
+          </span>
+        </div>`;
+      }).join('');
+      document.getElementById('cartSubtotal').textContent='RM '+subtotal.toFixed(2);
+      document.getElementById('cartTotalModal').textContent='RM '+subtotal.toFixed(2);
+    }
+
+    function chgQty(i,d){
+      cart[i].qty+=d;
+      if(cart[i].qty<=0)cart.splice(i,1);
+      saveCart();
+      if(!cart.length){
+        closeCart();updateCartBar();renderGrid();return;
+      }
+      refreshCartModal(); updateCartBar(); renderGrid();
+    }
+
+    function closeCart(){document.getElementById('cartModal').classList.remove('open')}
+
+    async function submitOrder(){
+      const name=document.getElementById('cName').value.trim();
+      const phone=document.getElementById('cPhone').value.trim();
+      if(!name||!phone){toast('Sila isi nama & no WhatsApp','error');return}
+      if(!cart.length){toast('Cart kosong','error');return}
+
+      const items=cart.map(c=>({package_id:c.id,quantity:c.qty}));
+
+      try{
+        await Btn.action(document.getElementById('submitBtn'), async ()=>{
+          const r=await fetch('/api/orders',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({
+              customer_name:name,
+              customer_phone:phone,
+              customer_address:document.getElementById('cAddr').value,
+              due_date:document.getElementById('dueDate').value,
+              sulam_text:document.getElementById('sulamText').value,
+              notes:document.getElementById('cNote').value,
+              items
+            })
+          });
+          if(!r.ok){const d=await r.json();throw new Error(d.error||'Ralat pelayan')}
+          const d=await r.json();
+          toast('Order '+d.order_id+' berjaya!','success');
+          cart=[]; saveCart();
+          updateCartBar(); renderGrid(); closeCart();
+          if(d.whatsapp_url)window.open(d.whatsapp_url,'_blank');
+        }, {
+          text:'📱 Hantar Order ke WhatsApp',
+          loadingText:'Menghantar...',
+          successText:'✅ Order Berjaya!',
+          errorText:'❌ Gagal Hantar'
+        });
+      }catch(e){toast(e.message||'Ralat rangkaian','error')}
+    }
+
+    function adminLogout(){fetch('/api/logout',{method:'POST',credentials:'same-origin'}).then(()=>location.reload())}
+    function toast(m,t){const el=document.createElement('div');el.className='toast '+(t||'success');el.textContent=m;document.body.appendChild(el);setTimeout(()=>el.remove(),3000)}
+    function esc(s){if(!s)return'';const d=document.createElement('div');d.appendChild(document.createTextNode(s));return d.innerHTML}
+    document.getElementById('cartModal').addEventListener('click',function(e){if(e.target===this)closeCart()});
+
+    window.openCart=openCart;window.closeCart=closeCart;window.submitOrder=submitOrder;
+    window.chgQty=chgQty;window.adminLogout=adminLogout;
+  </script>
+</body>
+</html>
