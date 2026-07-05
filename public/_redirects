@@ -1,0 +1,3 @@
+# SEO Redirects
+# www → root (301 permanent)
+https://www.babymama.my/* https://babymama.my/:splat 301
