@@ -7,7 +7,7 @@
 
   var CONFIG = {
     facebookPixelId: 'REPLACE_FB_PIXEL_ID',
-    tiktokPixelId: 'REPLACE_TIKTOK_PIXEL_ID',
+    tiktokPixelId: 'D95RFF3C77U79CKEQM00',
     currency: 'MYR',
     debug: false
   };
