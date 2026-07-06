@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Settings — Lamda Admin</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BBMamaAdmin">
+  <meta name="theme-color" content="#f5ede6">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <title>Settings — BBMamaAdmin</title>
   <link rel="stylesheet" href="/css/style.css">
   <script src="/js/btn.js"></script>
 </head>
@@ -38,6 +44,9 @@
     async function logout(){await fetch('/api/logout',{method:'POST',credentials:'same-origin'});location.href='/admin/login'}
     function toast(m,t){const el=document.createElement('div');el.className='toast '+(t||'success');el.textContent=m;document.body.appendChild(el);setTimeout(()=>el.remove(),3000)}
     window.save=save;window.logout=logout;
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.register('/sw.js').catch(function(){});
+    }
   </script>
 </body>
 </html>

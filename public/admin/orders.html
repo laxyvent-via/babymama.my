@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Orders — Lamda Admin</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BBMamaAdmin">
+  <meta name="theme-color" content="#f5ede6">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <title>Orders — BBMamaAdmin</title>
   <link rel="stylesheet" href="/css/style.css">
   <script src="/js/btn.js"></script>
   <style>
@@ -177,6 +183,9 @@
     function esc(s){if(s===null||s===undefined)return'';const d=document.createElement('div');d.appendChild(document.createTextNode(String(s)));return d.innerHTML}
     function escAttr(s){return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,'\\&#39;').replace(/"/g,'&quot;')}
     window.logout=logout; window.setTab=setTab; window.updateProgress=updateProgress;
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.register('/sw.js').catch(function(){});
+    }
   </script>
 </body>
 </html>

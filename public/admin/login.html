@@ -2,13 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Login — Lamda</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BBMamaAdmin">
+  <meta name="theme-color" content="#f5ede6">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <title>Admin Login — BBMamaAdmin</title>
   <link rel="stylesheet" href="/css/style.css">
   <script src="/js/btn.js"></script>
 </head>
 <body class="login-page">
   <div class="login-card">
-    <h1>🔐 Lamda Admin</h1>
+    <h1>🔐 BBMamaAdmin</h1>
     <div id="err" style="color:#e88080;font-size:.8rem;text-align:center;margin-bottom:10px;display:none;"></div>
     <div class="fg"><label>Username</label><input type="text" id="user" value="admin"></div>
     <div class="fg"><label>Password</label><input type="password" id="pass"></div>
@@ -31,6 +37,9 @@
       }
     }
     window.doLogin=doLogin;
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.register('/sw.js').catch(function(){});
+    }
   </script>
 </body>
 </html>

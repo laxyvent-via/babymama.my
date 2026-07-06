@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard — Lamda Admin</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BBMamaAdmin">
+  <meta name="theme-color" content="#f5ede6">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <title>Dashboard — BBMamaAdmin</title>
   <link rel="stylesheet" href="/css/style.css">
   <style>
     .img-manage-grid { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 10px; margin: 12px auto; width: 100%; touch-action: pan-y; }
@@ -18,379 +24,341 @@
     .img-cat-select {
       width: 100%; border: none; border-top: 1px solid #f0ece6;
       padding: 5px 6px; font-size: .58rem; color: #555;
-      outline: none; background: #fafafa; box-sizing: border-box;
-      font-family: Inter, system-ui, sans-serif; cursor: pointer;
     }
-    .img-manage-empty { text-align: center; padding: 30px; color: #999; font-size: .85rem; }
-    /* Drag states */
-    .img-manage-card.dragging { opacity: .35; transform: scale(.95); }
-    .img-manage-card.drag-over { border-color: var(--pink); box-shadow: 0 0 0 2px var(--pink); transform: scale(1.04); }
-    .img-manage-card.drag-ghost { position: fixed; pointer-events: none; z-index: 9999; opacity: .85; box-shadow: 0 8px 24px rgba(0,0,0,.2); transform: scale(1.08); }
-    .order-bar { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-top: 1px solid #eee; margin-top: 10px; }
-    .order-bar .order-hint { font-size: .72rem; color: #999; flex: 1; }
-    .order-bar .btn-save-order { padding: 6px 16px; background: var(--pink); color: #fff; border: none; border-radius: 8px; font-size: .78rem; font-weight: 700; cursor: pointer; transition: background .2s; opacity: .5; pointer-events: none; }
-    .order-bar .btn-save-order.dirty { opacity: 1; pointer-events: auto; }
-    .order-bar .btn-save-order.dirty:hover { background: #d49188; }
-    @media (max-width: 768px) {
-      .order-bar { flex-wrap: wrap; }
-      .image-manager-modal.open { align-items: stretch; }
-      .image-manager-modal .modal {
-        box-sizing: border-box;
-        width: 100%;
-        height: 100dvh;
-        max-height: 100dvh;
-        overflow-x: hidden;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior: contain;
-      }
-      .image-manager-modal .img-manage-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        justify-items: center;
-        align-items: start;
-        gap: 10px;
-        margin-left: auto;
-        margin-right: auto;
-        max-width: 100%;
-      }
-      .image-manager-modal .img-manage-card {
-        width: 100%;
-        max-width: 110px;
-      }
-      .image-manager-modal .img-manage-card img {
-        width: 100%;
-        height: auto;
-        aspect-ratio: 1 / 1;
-      }
+    .img-manage-card.dragging { opacity: .35; transform: scale(.92); }
+    .img-manage-card.drag-over {
+      border: 2px solid #cb9e8a; box-shadow: 0 0 0 3px rgba(203,158,138,.3);
+      transform: scale(1.05);
+    }
+    .img-manage-card.clone-flying {
+      position: fixed; z-index: 9999; pointer-events: none;
+      transition: none; opacity: .8; transform: scale(1.1) rotate(2deg);
+      width: 100px; height: 100px; border-radius: 8px; overflow: hidden;
+      box-shadow: 0 8px 30px rgba(0,0,0,.25);
+    }
+    .save-order-btn-wrap { text-align: center; margin-top: 15px; }
+    .save-order-btn-wrap button { opacity: .4; pointer-events: none; transition: opacity .2s; padding: 10px 28px; font-size: .85rem; border-radius: 24px; }
+    .save-order-btn-wrap button.active { opacity: 1; pointer-events: auto; }
+    @media(max-width:480px){
+      .img-manage-card { width: 80px; }
+      .img-manage-card img { width: 80px; height: 80px; }
     }
   </style>
-  <script src="/js/btn.js"></script>
 </head>
 <body>
-  <div class="admin-wrap">
-    <aside class="admin-sidebar">
-      <div style="padding:0 16px 12px;font-weight:700;">👶 Lamda Admin</div>
-      <a href="/admin/dashboard" class="active">📦 Packages</a>
-      <a href="/admin/orders">📋 Orders</a>
-      <a href="/admin/settings">⚙️ Settings</a>
-      <a href="/">← Site</a>
-      <a href="#" onclick="Btn.pulse(this);logout()">🚪 Logout</a>
-    </aside>
-    <main class="admin-main">
-      <h1>📦 Packages</h1>
-      <table class="admin-table" id="tbl">
-        <thead><tr><th>#</th><th>Img</th><th>Name</th><th>Price</th><th>Imgs</th><th>Status</th><th>Actions</th></tr></thead>
-        <tbody id="tb"><tr><td colspan="7" style="text-align:center;padding:30px;">Loading...</td></tr></tbody>
-      </table>
-
-      <!-- Manage Images Modal -->
-      <div class="modal-overlay image-manager-modal" id="im">
-        <div class="modal" style="max-width:600px;">
-          <button class="close" onclick="closeIM()">✕</button>
-          <h3>🖼️ Manage Images</h3>
-          <p id="imname" style="color:#888;margin-bottom:8px;"></p>
-          <div id="imGrid" class="img-manage-grid"><div class="img-manage-empty">Loading...</div></div>
-          <div class="order-bar" id="orderBar" style="display:none">
-            <span class="order-hint">↕️ Seret gambar untuk susun semula</span>
-            <button class="btn-save-order" id="saveOrderBtn" onclick="saveOrder()">💾 Simpan Susunan</button>
-          </div>
-          <div style="border-top:1px solid #eee;margin-top:12px;padding-top:12px;">
-            <p style="font-size:.8rem;color:#999;margin-bottom:6px;">📁 Upload gambar baru</p>
-            <div class="upload-zone" id="uz" onclick="document.getElementById('fi').click()">
-              <p>📁 Klik atau drag gambar</p><p style="font-size:.7rem;color:#999;">JPG,PNG,WebP — max 5MB</p>
-              <input type="file" id="fi" accept="image/jpeg,image/png,image/webp" multiple style="display:none" onchange="handleFiles(this.files)">
-            </div>
-            <div class="upload-preview" id="up"></div>
-            <div id="ust" style="margin-top:6px;font-size:.8rem;"></div>
-            <button class="btn-primary" id="ubtn" onclick="doUpload()" disabled style="margin-top:8px;">Upload</button>
-          </div>
-        </div>
+  <div id="overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:998;"></div>
+  <div id="modal-container" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:999;">
+    <div style="background:#fff;border-radius:20px;padding:18px 12px;max-width:420px;width:92%;max-height:90vh;overflow-y:auto;box-shadow:0 12px 48px rgba(0,0,0,.25);">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0 4px 12px;border-bottom:1px solid #f0ece6;">
+        <span style="font-weight:700;font-size:.9rem;color:#555;">Manage Images</span>
+        <button onclick="closeModal()" style="background:none;border:none;font-size:1.15rem;cursor:pointer;color:#999;">✕</button>
       </div>
-
-      <!-- Edit Modal -->
-      <div class="modal-overlay" id="em">
-        <div class="modal">
-          <button class="close" onclick="closeEM()">✕</button>
-          <h3>✏️ Edit</h3>
-          <div class="fg"><label>Name</label><input type="text" id="en"></div>
-          <div class="fg"><label>Price (RM)</label><input type="number" id="ep" step="0.01"></div>
-          <div class="fg"><label>Promo Price</label><input type="number" id="epp" step="0.01"></div>
-          <div class="fg"><label>🧵 Full Cotton Price (RM) <span style="color:#999;font-weight:400">— kosong = guna harga atas</span></label><input type="number" id="efcp" step="0.01"></div>
-          <div class="fg"><label>🧶 Minky Mix Cotton Price (RM) <span style="color:#999;font-weight:400">— kosong = guna harga atas</span></label><input type="number" id="emcp" step="0.01"></div>
-          <div class="fg"><label>💰 Range Harga (Frontpage) <span style="color:#999;font-weight:400">— contoh: RM 180 - RM 350</span></label><input type="text" id="epr" placeholder="RM 180 - RM 350"></div>
-          <div class="fg"><label>Badge</label><input type="text" id="eb"></div>
-          <div class="fg"><label>Status</label><select id="es"><option value="active">Active</option><option value="hidden">Hidden</option></select></div>
-          <div class="fg"><label>📋 Description (1 line = 1 bullet)</label><textarea id="edesc" rows="8" placeholder="📐 Saiz: 36 inci x 36 inci&#10;📏 Ketebalan: 2 inci&#10;🧵 Comforter dari fiber&#10;👶 Sesuai untuk newborn hingga 18 bulan&#10;✏️ Harga termasuk sulam nama&#10;🎨 Boleh tukar corak & warna" style="width:100%;padding:10px;border:1px solid #f0ece6;border-radius:10px;font-size:.82rem;font-family:Inter,system-ui,sans-serif;resize:vertical;box-sizing:border-box;"></textarea>
-          <div style="font-size:.72rem;color:#999;margin:-4px 0 6px;">Satu baris = satu bullet point. Guna emoji untuk icon.</div>
-          <button class="btn-primary" id="ebtn" onclick="doEdit()">Save</button>
-        </div>
-      </div>
-      <!-- Edit Modal -->
-    </main>
+      <div id="modal-body"></div>
+    </div>
   </div>
+  <header class="admin-header">
+    <div class="admin-header-inner">
+      <div class="admin-brand">📦 BBMamaAdmin</div>
+      <nav class="admin-nav" id="adminNav">
+        <a href="/admin/dashboard" class="active">📊 Dashboard</a>
+        <a href="/admin/orders">📋 Orders</a>
+        <a href="/admin/settings">⚙️ Settings</a>
+        <a href="#" onclick="doLogout()">🚪 Logout</a>
+      </nav>
+      <button class="hamburger" onclick="document.getElementById('adminNav').classList.toggle('open')">☰</button>
+    </div>
+  </header>
+  <main class="admin-main">
+    <div class="admin-metrics" id="metrics">
+      <div class="metric-card" onclick="applyFilter('all')"><div class="metric-val" id="mTotal">—</div><div class="metric-lbl">Total Packages</div></div>
+      <div class="metric-card" onclick="applyFilter('active')"><div class="metric-val" id="mActive">—</div><div class="metric-lbl">Active</div></div>
+      <div class="metric-card" onclick="applyFilter('sold_out')"><div class="metric-val" id="mSold">—</div><div class="metric-lbl">Sold Out</div></div>
+      <div class="metric-card" onclick="applyFilter('draft')"><div class="metric-val" id="mDraft">—</div><div class="metric-lbl">Draft</div></div>
+      <div class="metric-card" onclick="applyFilter('preorder')"><div class="metric-val" id="mPreorder">—</div><div class="metric-lbl">Preorder</div></div>
+    </div>
+    <div class="admin-toolbar">
+      <input type="text" id="searchBox" placeholder="🔍 Search packages..." oninput="renderTable()" style="flex:1;padding:8px 12px;border:1px solid #e6ddd6;border-radius:10px;font-size:.8rem;">
+      <select id="filterSelect" onchange="renderTable()" style="padding:8px 12px;border:1px solid #e6ddd6;border-radius:10px;font-size:.8rem;">
+        <option value="all">All Status</option>
+        <option value="active">Active</option>
+        <option value="draft">Draft</option>
+        <option value="sold_out">Sold Out</option>
+        <option value="hidden">Hidden</option>
+        <option value="preorder">Preorder</option>
+      </select>
+      <a href="/admin/product-new" class="btn-primary" style="padding:8px 16px;border-radius:24px;text-decoration:none;font-size:.78rem;white-space:nowrap;">+ New Package</a>
+    </div>
+    <div class="table-wrap" id="tableWrap">
+      <table class="admin-table"><thead><tr><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Status</th><th style="width:110px;">Actions</th></tr></thead><tbody id="tbody"></tbody></table>
+    </div>
+  </main>
+
   <script>
-    let pkgs=[], upkg=null, curImages=[], files=[], epkg=null;
-    (async function i(){if(!(await chk()))return;await load();
-      document.getElementById('uz').addEventListener('dragover',e=>{e.preventDefault();e.currentTarget.classList.add('drag')});
-      document.getElementById('uz').addEventListener('dragleave',e=>e.currentTarget.classList.remove('drag'));
-      document.getElementById('uz').addEventListener('drop',e=>{e.preventDefault();e.currentTarget.classList.remove('drag');handleFiles(e.dataTransfer.files)});
-    })();
-    async function chk(){try{const r=await fetch('/api/me',{credentials:'same-origin'});if(!r.ok){location.href='/admin/login';return false}return true}catch(e){location.href='/admin/login';return false}}
-    async function load(){try{const r=await fetch('/api/packages?status=all',{credentials:'same-origin'});pkgs=(await r.json()).packages||[];render()}catch(e){document.getElementById('tb').innerHTML='<tr><td colspan="7">Error</td></tr>'}}
-    function render(){document.getElementById('tb').innerHTML=pkgs.map((p,i)=>{const pr=p.promo_price?`<span style="color:#e88080;">RM${p.promo_price.toFixed(2)}</span> <s style="color:#999;">RM${(p.price||0).toFixed(2)}</s>`:`RM${(p.price||0).toFixed(2)}`;const img=p.preview_image?`<img class="thumb" src="${esc(p.preview_image)}" onerror="this.style.display='none'">`:'—';return `<tr><td>${i+1}</td><td>${img}</td><td><strong>${esc(p.name)}</strong></td><td>${pr}</td><td>${p.image_count||0}</td><td style="color:${p.status==='active'?'var(--sage)':'#e88080'}">${esc(p.status)}</td><td><button onclick="Btn.pulse(this);openIM(${p.id})" title="Manage Images">🖼️</button><button onclick="Btn.pulse(this);openE(${p.id})">✏️</button></td></tr>`}).join('')}
+    const BASE = window.location.origin;
+    let packages=[], categories=[];
+    let filterMode='all';
 
-    async function openIM(id){upkg=pkgs.find(p=>p.id===id);if(!upkg)return;document.getElementById('imname').textContent='📦 '+upkg.name;files=[];document.getElementById('up').innerHTML='';document.getElementById('ust').textContent='';document.getElementById('ubtn').disabled=true;document.getElementById('imGrid').innerHTML='<div class="img-manage-empty">Loading...</div>';document.getElementById('im').classList.add('open');
-      try{const r=await fetch('/api/packages/'+id,{credentials:'same-origin'});if(r.ok){const d=await r.json();curImages=d.images||[];renderImages()}else{document.getElementById('imGrid').innerHTML='<div class="img-manage-empty">Failed to load</div>'}}catch(e){document.getElementById('imGrid').innerHTML='<div class="img-manage-empty">Error</div>'}}
+    function applyFilter(f){filterMode=f;document.getElementById('filterSelect').value='all';renderTable();}
 
-    function renderImages(){const g=document.getElementById('imGrid');const ob=document.getElementById('orderBar');if(!curImages.length){g.innerHTML='<div class="img-manage-empty">⚠️ Tiada gambar lagi.<br>Upload guna form di bawah.</div>';ob.style.display='none';return}
-      g.innerHTML=curImages.map((img,i)=>`<div class="img-manage-card" data-img-id="${img.id}" draggable="true">
+    function getStatusBadge(s){
+      const m={'active':'🟢 Active','draft':'⚪ Draft','sold_out':'🔴 Sold Out','hidden':'⚫ Hidden','preorder':'🟡 Preorder'};
+      return m[s]||s;
+    }
+    function getCatName(id){const c=categories.find(x=>x.id==id);return c?c.name:'?'}
+
+    async function loadData(){
+      try{
+        const[pk,cat]=await Promise.all([
+          fetch('/api/packages').then(r=>r.json()),
+          fetch('/api/categories').then(r=>r.json())
+        ]);
+        packages=pk.packages||[]; categories=cat.categories||[];
+        updateMetrics(); renderTable();
+      }catch(e){document.getElementById('tableWrap').innerHTML='<p style="text-align:center;padding:40px;color:#b88;">❌ Failed to load data</p>'}
+    }
+
+    function updateMetrics(){
+      const all=packages;
+      document.getElementById('mTotal').textContent=all.length;
+      document.getElementById('mActive').textContent=all.filter(p=>p.status==='active').length;
+      document.getElementById('mSold').textContent=all.filter(p=>p.status==='sold_out').length;
+      document.getElementById('mDraft').textContent=all.filter(p=>p.status==='draft').length;
+      document.getElementById('mPreorder').textContent=all.filter(p=>p.status==='preorder').length;
+    }
+
+    function renderTable(){
+      const q=(document.getElementById('searchBox').value||'').toLowerCase();
+      const fs=document.getElementById('filterSelect').value;
+      let list=packages;
+      if(filterMode!=='all'){list=list.filter(p=>p.status===filterMode);filterMode='all';}
+      else if(fs!=='all')list=list.filter(p=>p.status===fs);
+      if(q)list=list.filter(p=>p.name.toLowerCase().includes(q)||(p.short_description||'').toLowerCase().includes(q));
+      const t=document.getElementById('tbody');
+      if(!list.length){t.innerHTML='<tr><td colspan="6" style="text-align:center;padding:40px;color:#aaa;">No packages found</td></tr>';return;}
+      t.innerHTML=list.map(p=>`<tr>
+        <td><img src="${p.main_image_url||'/images/placeholder.png'}" style="width:48px;height:48px;object-fit:cover;border-radius:6px;" loading="lazy" onerror="this.src='/images/placeholder.png'"></td>
+        <td><strong>${p.name}</strong>${p.badge?` <span style="background:#cb9e8a;color:#fff;font-size:.6rem;padding:1px 6px;border-radius:4px;">${p.badge}</span>`:''}<br><span style="font-size:.65rem;color:#999;">${p.slug}</span></td>
+        <td>${getCatName(p.category_id)}</td>
+        <td>${p.promo_price?`<span style="color:#b8735a;font-weight:700;">RM${p.promo_price}</span> <span style="text-decoration:line-through;color:#bbb;font-size:.7rem;">RM${p.price}</span>`:`RM${p.price}`}</td>
+        <td>${getStatusBadge(p.status)}</td>
+        <td style="white-space:nowrap;">
+          <button class="btn-sm" onclick="manageImages(${p.id},'${p.name.replace(/'/g,"\\'")}')" title="Manage Images">🖼️</button>
+          <a href="/admin/product-edit?id=${p.id}" class="btn-sm" title="Edit">✏️</a>
+          <button class="btn-sm" onclick="deletePackage(${p.id})" title="Delete" style="color:#c0392b;">🗑️</button>
+        </td>
+      </tr>`).join('');
+    }
+
+    async function deletePackage(id){
+      if(!confirm('Delete this package?'))return;
+      try{
+        const r=await fetch(`/api/packages/${id}`,{method:'DELETE'});
+        if(!r.ok)throw Error((await r.json()).error||'Delete failed');
+        packages=packages.filter(p=>p.id!==id);updateMetrics();renderTable();
+      }catch(e){alert('Error: '+e.message)}
+    }
+
+    /* ─── Manage Images Modal (drag reorder) ─── */
+    let modalImages=[], modalPkgId=null, imgOrderDirty=false;
+
+    function openModal(pkgId){document.getElementById('overlay').style.display='block';document.getElementById('modal-container').style.display='flex';modalPkgId=pkgId;}
+    function closeModal(){document.getElementById('overlay').style.display='none';document.getElementById('modal-container').style.display='none';imgOrderDirty=false;}
+
+    async function manageImages(id, name) {
+      openModal(id);
+      document.getElementById('modal-body').innerHTML=`<p style="text-align:center;padding:20px;color:#999;">Loading images...</p>`;
+      try {
+        const r=await fetch(`/api/packages/${id}`);
+        const d=await r.json();
+        modalImages=(d.images||[]).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+        renderModalImages(modalImages);
+        renderImageUploader(id);
+      } catch(e) {
+        document.getElementById('modal-body').innerHTML=`<p style="color:#b88;text-align:center;">❌ Failed to load images</p>`;
+      }
+    }
+
+    function renderModalImages(imgs) {
+      const body=document.getElementById('modal-body');
+      if(!imgs.length){
+        body.innerHTML=`<p style="text-align:center;padding:30px;color:#bbb;">No images yet. Upload below.</p>`+body.innerHTML.slice(0,0);
+        return;
+      }
+      const g=document.createElement('div');g.className='img-manage-grid';g.id='imgGrid';
+      g.innerHTML=imgs.map((img,i)=>`<div class="img-manage-card" draggable="true" data-id="${img.id}" data-index="${i}">
         <span class="img-order-badge">#${i+1}</span>
-        <img src="${esc(img.image_url)}" alt="" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22110%22 height=%22110%22><rect fill=%22%23f0f0f0%22 width=%22110%22 height=%22110%22/><text x=%2255%22 y=%2260%22 text-anchor=%22middle%22 font-size=%2230%22>🖼</text></svg>'">
-        <button class="btn-del-img" onclick="Btn.pulse(this);delImage(${img.id},this)" title="Delete">✕</button>
-        <select class="img-cat-select" onchange="saveCategory(${img.id},this.value)" onclick="event.stopPropagation()"><option value="">—</option><option value="full_cotton"${img.gallery_category==='full_cotton'?' selected':''}>Full Cotton</option><option value="minky_mix_cotton"${img.gallery_category==='minky_mix_cotton'?' selected':''}>Minky Mix Cotton</option></select>
+        <button class="btn-del-img" onclick="deleteImage(${img.id})" title="Delete">✕</button>
+        <img src="${img.image_url}" alt="" loading="lazy" onerror="this.parentElement.style.opacity='.3'">
       </div>`).join('');
-      ob.style.display='flex';setDirty(false);
-      // Attach delegated drag listeners
-      installDrag();
+      /* remove old grid, keep uploader */
+      const old=document.getElementById('imgGrid');if(old)old.remove();
+      const uploader=body.querySelector('.upload-section');
+      body.innerHTML='';body.appendChild(g);
+      if(uploader)body.appendChild(uploader);
+      initDragDrop();
     }
 
-    async function delImage(id,btn){if(!confirm('Delete image #'+id+'?'))return;
-      try{await Btn.action(btn,async()=>{const r=await fetch('/api/images/'+id,{method:'DELETE',credentials:'same-origin'});if(!r.ok){const d=await r.json();throw new Error(d.error||'Failed')}},{text:'✕',loadingText:'',successText:'🗑',duration:1000});curImages=curImages.filter(im=>im.id!==id);renderImages();await load();toast('Deleted','success')}catch(e){toast(e.message||'Network error','error')}}
-
-
-    async function saveCategory(id, category) {
-      try {
-        const r = await fetch('/api/images/' + id, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gallery_category: category }),
-          credentials: 'same-origin'
-        });
-        if (!r.ok) throw new Error('Save failed');
-        const img = curImages.find(im => im.id === id);
-        if (img) img.gallery_category = category;
-      } catch(e) { toast(e.message||'Category save error','error'); }
+    function renderImageUploader(pkgId){
+      if(document.querySelector('.upload-section'))return;
+      const sec=document.createElement('div');sec.className='upload-section';
+      sec.style.cssText='margin-top:16px;padding-top:16px;border-top:1px solid #f0ece6;text-align:center;';
+      sec.innerHTML=`
+        <label style="display:inline-block;padding:8px 20px;background:#cb9e8a;color:#fff;border-radius:20px;font-size:.78rem;cursor:pointer;">📤 Upload Image
+          <input type="file" accept="image/*" style="display:none;" onchange="uploadImage(${pkgId},this)">
+        </label>
+        <div id="uploadProgress" style="margin-top:10px;font-size:.7rem;color:#999;display:none;"></div>
+      `;
+      document.getElementById('modal-body').appendChild(sec);
     }
 
-    function closeIM(){document.getElementById('im').classList.remove('open');upkg=null;curImages=[];files=[]}
-    function handleFiles(fl){files=Array.from(fl).filter(f=>['image/jpeg','image/jpg','image/png','image/webp'].includes(f.type)&&f.size<=5*1024*1024);document.getElementById('ubtn').disabled=!files.length;document.getElementById('up').innerHTML='';files.forEach(f=>{const r=new FileReader();r.onload=e=>{const i=document.createElement('img');i.src=e.target.result;document.getElementById('up').appendChild(i)};r.readAsDataURL(f)});document.getElementById('ust').textContent=files.length+' files'}
-    async function doUpload(){if(!upkg||!files.length)return;const s=document.getElementById('ust');
-      try{await Btn.action(document.getElementById('ubtn'),async()=>{let ok=0;for(const f of files){const fd=new FormData();fd.append('file',f);fd.append('package_id',upkg.id);try{const r=await fetch('/api/upload',{method:'POST',body:fd,credentials:'same-origin'});if(r.ok)ok++;else{const d=await r.json();throw new Error(d.error||'Upload failed')}}catch(e){if(e.message&&!e.message.includes('Failed to fetch'))throw e;ok++}s.textContent=ok+'/'+files.length}if(!ok)throw new Error('0 uploaded');toast(ok+' uploaded','success')},{text:'Upload',loadingText:'Uploading...',successText:'✅ Uploaded!'});
-        files=[];document.getElementById('up').innerHTML='';document.getElementById('ust').textContent='';document.getElementById('ubtn').disabled=true;
-        await load();try{const r=await fetch('/api/packages/'+upkg.id,{credentials:'same-origin'});if(r.ok){const d=await r.json();curImages=d.images||[];renderImages()}}catch(e){}
-      }catch(e){toast(e.message||'Upload error','error')}}
-
-    function openE(id){epkg=pkgs.find(p=>p.id===id);if(!epkg)return;document.getElementById('en').value=epkg.name||'';document.getElementById('ep').value=epkg.price||0;document.getElementById('epp').value=epkg.promo_price||'';document.getElementById('efcp').value=epkg.full_cotton_price||'';document.getElementById('emcp').value=epkg.minky_mix_cotton_price||'';document.getElementById('epr').value=epkg.price_range||'';document.getElementById('eb').value=epkg.badge||'';document.getElementById('es').value=epkg.status||'active';document.getElementById('edesc').value=epkg.description||'';document.getElementById('em').classList.add('open')}
-    function closeEM(){document.getElementById('em').classList.remove('open')}
-    async function doEdit(){if(!epkg)return;const b={name:document.getElementById('en').value,price:parseFloat(document.getElementById('ep').value)||0,promo_price:parseFloat(document.getElementById('epp').value)||null,full_cotton_price:parseFloat(document.getElementById('efcp').value)||null,minky_mix_cotton_price:parseFloat(document.getElementById('emcp').value)||null,price_range:document.getElementById('epr').value||null,badge:document.getElementById('eb').value,status:document.getElementById('es').value,description:document.getElementById('edesc').value};try{await Btn.action(document.getElementById('ebtn'),async()=>{const r=await fetch('/api/packages/'+epkg.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(b),credentials:'same-origin'});if(!r.ok){const d=await r.json();throw new Error(d.error||'Error')}},{text:'Save',loadingText:'Saving...',successText:'✅ Saved!'});toast('Saved','success');closeEM();await load()}catch(e){toast(e.message||'Network error','error')}}
-    async function logout(){await fetch('/api/logout',{method:'POST',credentials:'same-origin'});location.href='/admin/login'}
-    function toast(m,t){const el=document.createElement('div');el.className='toast '+(t||'success');el.textContent=m;document.body.appendChild(el);setTimeout(()=>el.remove(),3000)}
-    function esc(s){if(!s)return'';const d=document.createElement('div');d.appendChild(document.createTextNode(s));return d.innerHTML}
-
-    /* ── DELEGATED DRAG & DROP (RELIABLE) ── */
-    let _dragSrc=null, _dragGhost=null, _touchSrc=null, _touchClone=null, _touchGhost=null;
-    let _touchTimer=null, _touchStartX=0, _touchStartY=0, _touchCard=null;
-
-    function setDirty(dirty) {
-      const b = document.getElementById('saveOrderBtn');
-      if (b) b.classList.toggle('dirty', dirty);
+    async function uploadImage(pkgId,input){
+      const f=input.files[0];if(!f)return;
+      if(f.size>5*1024*1024){alert('Max 5MB');input.value='';return;}
+      const p=document.getElementById('uploadProgress');p.style.display='block';p.textContent='Uploading...';
+      const fd=new FormData();fd.append('image',f);fd.append('package_id',pkgId);
+      try{
+        const r=await fetch('/api/upload',{method:'POST',body:fd});
+        if(!r.ok)throw Error((await r.json()).error||'Upload failed');
+        input.value='';p.textContent='✅ Done! Refreshing...';
+        await manageImages(modalPkgId,'');
+      }catch(e){p.textContent='❌ '+e.message;}
     }
 
-    // Get image card from event target
-    function getCard(el) { return el?.closest('.img-manage-card'); }
-    function getImgId(el) { const c = getCard(el); return c ? parseInt(c.dataset.imgId,10) : null; }
-
-    function installDrag() {
-      const grid = document.getElementById('imGrid');
-
-      // ── Desktop Drag ──
-      grid.addEventListener('dragstart', function(e) {
-        const imgId = getImgId(e.target);
-        if (!imgId) return;
-        _dragSrc = imgId;
-        const card = getCard(e.target);
-
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', String(imgId));
-
-        // Create ghost clone
-        _dragGhost = card.cloneNode(true);
-        _dragGhost.classList.add('drag-ghost');
-        _dragGhost.style.width = card.offsetWidth + 'px';
-        _dragGhost.style.position = 'fixed';
-        _dragGhost.style.pointerEvents = 'none';
-        _dragGhost.style.zIndex = '9999';
-        _dragGhost.style.left = '-9999px';
-        document.body.appendChild(_dragGhost);
-
-        setTimeout(() => card.classList.add('dragging'), 0);
-      });
-
-      grid.addEventListener('dragend', function(e) {
-        document.querySelectorAll('.img-manage-card.dragging,.img-manage-card.drag-over').forEach(c=>c.classList.remove('dragging','drag-over'));
-        if (_dragGhost) { _dragGhost.remove(); _dragGhost = null; }
-        _dragSrc = null;
-      });
-
-      grid.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        const imgId = getImgId(e.target);
-        if (!imgId || imgId === _dragSrc) return;
-        e.dataTransfer.dropEffect = 'move';
-        // Highlight the card under cursor
-        document.querySelectorAll('.img-manage-card').forEach(c => {
-          const cid = parseInt(c.dataset.imgId,10);
-          c.classList.toggle('drag-over', cid === imgId);
-        });
-      });
-
-      grid.addEventListener('dragenter', function(e) {
-        e.preventDefault();
-        const card = getCard(e.target);
-        const imgId = card ? parseInt(card.dataset.imgId,10) : null;
-        if (card && imgId !== _dragSrc) card.classList.add('drag-over');
-      });
-
-      grid.addEventListener('dragleave', function(e) {
-        const card = getCard(e.target);
-        if (card) card.classList.remove('drag-over');
-      });
-
-      grid.addEventListener('drop', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        document.querySelectorAll('.img-manage-card.drag-over').forEach(c=>c.classList.remove('drag-over'));
-
-        const tgtId = getImgId(e.target);
-        if (!_dragSrc || !tgtId || tgtId === _dragSrc) return;
-
-        const srcIdx = curImages.findIndex(img => img.id === _dragSrc);
-        const tgtIdx = curImages.findIndex(img => img.id === tgtId);
-        if (srcIdx === -1 || tgtIdx === -1) return;
-
-        const [removed] = curImages.splice(srcIdx, 1);
-        curImages.splice(tgtIdx, 0, removed);
-        renderImages();
-        setDirty(true);
-      });
-
-      // ── Touch Drag (mobile) ──
-      let cleanupTouch = () => {
-        if (_touchTimer) { clearTimeout(_touchTimer); _touchTimer = null; }
-        if (_touchClone) { _touchClone.remove(); _touchClone = null; }
-        document.querySelectorAll('.img-manage-card.dragging,.img-manage-card.drag-over').forEach(c=>c.classList.remove('dragging','drag-over'));
-        _touchSrc = null;
-        _touchCard = null;
-      };
-
-      grid.addEventListener('touchstart', function(e) {
-        const imgId = getImgId(e.target);
-        if (!imgId) return;
-        // Do NOT start drag immediately on phone — that blocks normal modal scroll.
-        // Long-press starts reorder; regular swipe stays as vertical scrolling.
-        cleanupTouch();
-        _touchSrc = imgId;
-        _touchCard = getCard(e.target);
-        const t = e.touches[0];
-        _touchStartX = t.clientX;
-        _touchStartY = t.clientY;
-
-        _touchTimer = setTimeout(() => {
-          if (!_touchCard || !_touchSrc) return;
-          _touchClone = _touchCard.cloneNode(true);
-          _touchClone.classList.add('drag-ghost');
-          _touchClone.style.width = _touchCard.offsetWidth + 'px';
-          _touchClone.style.left = (_touchStartX - _touchCard.offsetWidth/2) + 'px';
-          _touchClone.style.top = (_touchStartY - 60) + 'px';
-          document.body.appendChild(_touchClone);
-          _touchCard.classList.add('dragging');
-          _touchTimer = null;
-        }, 260);
-
-        // Safety timeout — force cleanup after 8 seconds
-        setTimeout(() => {
-          if (_touchClone) { _touchClone.remove(); _touchClone = null; }
-        }, 8000);
-      }, {passive: true});
-
-      grid.addEventListener('touchmove', function(e) {
-        const t = e.touches[0];
-        // If user swipes normally before long-press, cancel drag and let modal scroll.
-        if (!_touchClone) {
-          const dx = Math.abs(t.clientX - _touchStartX);
-          const dy = Math.abs(t.clientY - _touchStartY);
-          if (_touchTimer && (dx > 8 || dy > 8)) {
-            clearTimeout(_touchTimer);
-            _touchTimer = null;
-            _touchSrc = null;
-            _touchCard = null;
-          }
-          return;
-        }
-        e.preventDefault();
-        _touchClone.style.left = (t.clientX - _touchClone.offsetWidth/2) + 'px';
-        _touchClone.style.top = (t.clientY - 60) + 'px';
-
-        // Find card under finger
-        _touchClone.style.display = 'none';
-        const el = document.elementFromPoint(t.clientX, t.clientY);
-        _touchClone.style.display = '';
-        const card = getCard(el);
-        document.querySelectorAll('.img-manage-card.drag-over').forEach(c=>c.classList.remove('drag-over'));
-        if (card) {
-          const cid = parseInt(card.dataset.imgId,10);
-          if (cid && cid !== _touchSrc) card.classList.add('drag-over');
-        }
-      }, {passive: false});
-
-      grid.addEventListener('touchend', function(e) {
-        // Save state BEFORE cleanup (cleanupTouch resets _touchSrc)
-        const dropCard = document.querySelector('.img-manage-card.drag-over');
-        const srcId = _touchSrc;
-        cleanupTouch();
-
-        if (dropCard && srcId) {
-          const tgtId = parseInt(dropCard.dataset.imgId,10);
-          const srcIdx = curImages.findIndex(img => img.id === srcId);
-          const tgtIdx = curImages.findIndex(img => img.id === tgtId);
-          if (srcIdx !== -1 && tgtIdx !== -1) {
-            const [removed] = curImages.splice(srcIdx, 1);
-            curImages.splice(tgtIdx, 0, removed);
-            renderImages();
-            setDirty(true);
-          }
-        }
-      });
-
-      grid.addEventListener('touchcancel', cleanupTouch);
+    async function deleteImage(imgId){
+      if(!confirm('Delete this image?'))return;
+      try{
+        const r=await fetch(`/api/images/${imgId}`,{method:'DELETE'});
+        if(!r.ok)throw Error((await r.json()).error||'Delete failed');
+        await manageImages(modalPkgId,'');
+      }catch(e){alert('Error: '+e.message);}
     }
 
-    /* ── Save Order ── */
-    async function saveOrder() {
-      const ids = curImages.map(img => img.id);
-      if (!ids.length) return;
-      const btn = document.getElementById('saveOrderBtn');
-      try {
-        await Btn.action(btn, async () => {
-          const r = await fetch('/api/images/reorder', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ order: ids }),
-            credentials: 'same-origin'
-          });
-          if (!r.ok) { const d = await r.json(); throw new Error(d.error || 'Failed'); }
-        }, { text: '💾 Simpan Susunan', loadingText: 'Menyimpan...', successText: '✅ Tersimpan!' });
-        setDirty(false);
-        await load();
-      } catch(e) { toast(e.message||'Save failed','error'); }
+    /* ─── Drag & Drop Reorder ─── */
+    let dragSrcId=null, dragSrcIdx=null, cloneEl=null;
+
+    function initDragDrop(){
+      const cards=document.querySelectorAll('.img-manage-card');
+      cards.forEach(c=>{
+        c.removeEventListener('dragstart',onDragStart);c.removeEventListener('dragend',onDragEnd);
+        c.removeEventListener('dragover',onDragOver);c.removeEventListener('dragenter',onDragEnter);
+        c.removeEventListener('dragleave',onDragLeave);c.removeEventListener('drop',onDrop);
+        c.removeEventListener('touchstart',onTouchStart);c.removeEventListener('touchmove',onTouchMove);
+        c.removeEventListener('touchend',onTouchEnd);
+        c.addEventListener('dragstart',onDragStart);c.addEventListener('dragend',onDragEnd);
+        c.addEventListener('dragover',onDragOver);c.addEventListener('dragenter',onDragEnter);
+        c.addEventListener('dragleave',onDragLeave);c.addEventListener('drop',onDrop);
+        c.addEventListener('touchstart',onTouchStart,{passive:false});c.addEventListener('touchmove',onTouchMove,{passive:false});
+        c.addEventListener('touchend',onTouchEnd);
+      });
     }
 
-    document.getElementById('im').addEventListener('click',function(e){if(e.target===this)closeIM()});
-    document.getElementById('em').addEventListener('click',function(e){if(e.target===this)closeEM()});
-    window.openIM=openIM;window.closeIM=closeIM;window.doUpload=doUpload;window.delImage=delImage;window.openE=openE;window.closeEM=closeEM;window.doEdit=doEdit;window.logout=logout;window.handleFiles=handleFiles;
-    window.saveOrder=saveOrder;window.saveCaption=saveCaption;window.saveCategory=saveCategory;
-    window.installDrag=installDrag;
+    function onDragStart(e){
+      dragSrcId=this.dataset.id;dragSrcIdx=parseInt(this.dataset.index);
+      this.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',this.dataset.id);
+    }
+    function onDragEnd(e){
+      this.classList.remove('dragging');
+      document.querySelectorAll('.img-manage-card.drag-over').forEach(c=>c.classList.remove('drag-over'));
+    }
+    function onDragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';}
+    function onDragEnter(e){e.preventDefault();this.classList.add('drag-over');}
+    function onDragLeave(e){this.classList.remove('drag-over');}
+    function onDrop(e){
+      e.preventDefault();this.classList.remove('drag-over');
+      const targetIdx=parseInt(this.dataset.index);
+      if(dragSrcIdx===targetIdx)return;
+      moveImage(dragSrcIdx,targetIdx);
+    }
+
+    /* Touch drag */
+    let touchStartY=0, touchStartX=0, touchedCard=null, touching=false;
+
+    function onTouchStart(e){
+      const c=e.currentTarget;touchedCard=c;touching=false;
+      const t=e.touches[0];touchStartY=t.clientY;touchStartX=t.clientX;
+      dragSrcId=c.dataset.id;dragSrcIdx=parseInt(c.dataset.index);
+      /* wait a bit to distinguish tap vs drag */
+      this._touchTimer=setTimeout(()=>{
+        touching=true;
+        /* create flying clone */
+        cloneEl=c.cloneNode(true);cloneEl.className='img-manage-card clone-flying';
+        cloneEl.style.left=(t.clientX-50)+'px';cloneEl.style.top=(t.clientY-50)+'px';
+        document.body.appendChild(cloneEl);
+        c.classList.add('dragging');
+      },150);
+    }
+
+    function onTouchMove(e){
+      if(!touching||!cloneEl){clearTimeout(this._touchTimer);return;}
+      e.preventDefault();
+      const t=e.touches[0];
+      cloneEl.style.left=(t.clientX-50)+'px';cloneEl.style.top=(t.clientY-50)+'px';
+      /* hit test */
+      const cards=document.querySelectorAll('.img-manage-card');
+      cards.forEach(c=>c.classList.remove('drag-over'));
+      const el=document.elementFromPoint(t.clientX,t.clientY);
+      if(el){
+        const card=el.closest('.img-manage-card');
+        if(card&&card!==touchedCard)card.classList.add('drag-over');
+      }
+    }
+
+    function onTouchEnd(e){
+      clearTimeout(this._touchTimer);
+      if(cloneEl){cloneEl.remove();cloneEl=null;}
+      touchedCard&&touchedCard.classList.remove('dragging');
+      const target=document.querySelector('.img-manage-card.drag-over');
+      if(target&&touching){
+        const targetIdx=parseInt(target.dataset.index);
+        if(dragSrcIdx!==targetIdx)moveImage(dragSrcIdx,targetIdx);
+      }
+      document.querySelectorAll('.img-manage-card.drag-over').forEach(c=>c.classList.remove('drag-over'));
+      touching=false;
+    }
+
+    function moveImage(fromIdx,toIdx){
+      const item=modalImages.splice(fromIdx,1)[0];
+      modalImages.splice(toIdx,0,item);
+      imgOrderDirty=true;
+      renderModalImages(modalImages);
+      showSaveButton();
+    }
+
+    function showSaveButton(){
+      let btn=document.querySelector('.save-order-btn');
+      if(!btn){
+        const wrap=document.createElement('div');wrap.className='save-order-btn-wrap';
+        wrap.innerHTML=`<button class="btn-primary save-order-btn" onclick="saveImageOrder()">💾 Simpan Susunan</button>`;
+        document.getElementById('modal-body').appendChild(wrap);
+        btn=wrap.querySelector('button');
+      }
+      btn.classList.add('active');btn.textContent='💾 Simpan Susunan';
+    }
+
+    async function saveImageOrder(){
+      const order=modalImages.map(img=>img.id);
+      const btn=document.querySelector('.save-order-btn');if(!btn)return;
+      btn.textContent='⏳ Menyimpan...';
+      try{
+        const r=await fetch('/api/images/reorder',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({order})});
+        if(!r.ok)throw Error((await r.json()).error||'Save failed');
+        btn.textContent='✅ Tersimpan!';imgOrderDirty=false;
+        setTimeout(()=>{btn.classList.remove('active');btn.textContent='💾 Simpan Susunan';},1200);
+      }catch(e){btn.textContent='❌ '+e.message;}
+    }
+
+    /* ─── Logout ─── */
+    async function doLogout(){
+      try{await fetch('/api/logout',{method:'POST'});}catch(e){}
+      location.href='/admin/login';
+    }
+
+    loadData();
+
+    /* ─── Register Service Worker ─── */
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.register('/sw.js').catch(()=>{});
+    }
   </script>
 </body>
 </html>
