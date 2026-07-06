@@ -109,8 +109,8 @@
     async function loadData(){
       try{
         const[pk,cat]=await Promise.all([
-          fetch('/api/packages').then(r=>r.json()),
-          fetch('/api/categories').then(r=>r.json())
+          fetch('/api/packages').then(r=>r.ok?r.json():{packages:[]}),
+          fetch('/api/categories').then(r=>r.ok?r.json():{categories:[]})
         ]);
         packages=pk.packages||[]; categories=cat.categories||[];
         updateMetrics(); renderTable();
