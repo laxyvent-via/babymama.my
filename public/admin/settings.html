@@ -45,7 +45,7 @@
     function toast(m,t){const el=document.createElement('div');el.className='toast '+(t||'success');el.textContent=m;document.body.appendChild(el);setTimeout(()=>el.remove(),3000)}
     window.save=save;window.logout=logout;
     if('serviceWorker' in navigator){
-      navigator.serviceWorker.register('/sw.js').catch(function(){});
+      navigator.serviceWorker.register('/sw.js?v=3').catch(function(){});
     }
   </script>
 </body>
