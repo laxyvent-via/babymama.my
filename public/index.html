@@ -6,6 +6,7 @@
   <meta name="description" content="Pilih design tilam baby, lihat warna & material, order terus dari gallery Babymama.">
   <link rel="stylesheet" href="/css/style.css">
   <script src="/js/btn.js"></script>
+  <script src="/js/tracking.js" defer></script>
 </head>
 <body>
 
@@ -203,7 +204,7 @@
         const added=cart.some(c=>Number(c.id)===Number(p.id));
         const squareCard=['pakej-maryam','pakej-azzahra','blanket'].includes(p.slug)?'pkg-card-square':'';
         const priceHtml = p.price_range ? esc(p.price_range) : 'RM' + price.toFixed(2);
-        return `<div class="pkg-card ${squareCard} ${added?'added':''}" onclick="location.href='/gallery?id=${p.id}'">
+        return `<div class="pkg-card ${squareCard} ${added?'added':''}" onclick="openPackage(${p.id})">
           <div class="img-wrap">
             ${badge}
             ${imgHtml}
@@ -219,6 +220,12 @@
       }).join('');
     }
 
+    function openPackage(id){
+      const p = pkgs.find(x => Number(x.id) === Number(id));
+      if (window.BBMTracking && p) window.BBMTracking.viewContent(p, { source: 'home_package_card' });
+      location.href = '/gallery?id=' + encodeURIComponent(id);
+    }
+
     function updateCartBar(){
       const bar=document.getElementById('cartBar');
       if(!cart.length){bar.style.display='none';return}
@@ -231,6 +238,10 @@
 
     function openCart(){
       if(!cart.length)return;
+      if (window.BBMTracking) {
+        const total = cart.reduce((s,c)=>s+(c.price*c.qty),0);
+        window.BBMTracking.initiateCheckout({ value: total, num_items: cart.reduce((s,c)=>s+c.qty,0), source: 'cart_bar' });
+      }
       refreshCartModal();
       document.getElementById('cartModal').classList.add('open');
     }
@@ -293,6 +304,11 @@
           if(!r.ok){const d=await r.json();throw new Error(d.error||'Ralat pelayan')}
           const d=await r.json();
           toast('Order '+d.order_id+' berjaya!','success');
+          if (window.BBMTracking) {
+            const total = cart.reduce((s,c)=>s+(c.price*c.qty),0);
+            window.BBMTracking.lead({ value: total, num_items: cart.reduce((s,c)=>s+c.qty,0), source: 'cart_submit', order_id: d.order_id });
+            window.BBMTracking.contact({ value: total, source: 'whatsapp_order_submit', order_id: d.order_id });
+          }
           cart=[]; saveCart();
           updateCartBar(); renderGrid(); closeCart();
           if(d.whatsapp_url)window.open(d.whatsapp_url,'_blank');
@@ -309,9 +325,11 @@
     function toast(m,t){const el=document.createElement('div');el.className='toast '+(t||'success');el.textContent=m;document.body.appendChild(el);setTimeout(()=>el.remove(),3000)}
     function esc(s){if(!s)return'';const d=document.createElement('div');d.appendChild(document.createTextNode(s));return d.innerHTML}
     document.getElementById('cartModal').addEventListener('click',function(e){if(e.target===this)closeCart()});
+    document.getElementById('fabWa')?.addEventListener('click',function(){if(window.BBMTracking)window.BBMTracking.contact({source:'floating_whatsapp'});});
+    document.getElementById('footerWa')?.addEventListener('click',function(){if(window.BBMTracking)window.BBMTracking.contact({source:'footer_whatsapp'});});
 
     window.openCart=openCart;window.closeCart=closeCart;window.submitOrder=submitOrder;
-    window.chgQty=chgQty;window.adminLogout=adminLogout;
+    window.openPackage=openPackage;window.chgQty=chgQty;window.adminLogout=adminLogout;
   </script>
 </body>
 </html>

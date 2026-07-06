@@ -6,6 +6,7 @@
   <meta name="description" content="Lihat semua design, warna dan material kain Babymama.">
   <link rel="stylesheet" href="/css/style.css">
   <script src="/js/btn.js"></script>
+  <script src="/js/tracking.js" defer></script>
 </head>
 <body class="gallery-page">
 
@@ -71,6 +72,7 @@
         document.body.classList.toggle('gallery-pakej-azzahra', pkg && pkg.slug === 'pakej-azzahra');
         document.body.classList.toggle('gallery-blanket', pkg && pkg.slug === 'blanket');
         render();
+        if (window.BBMTracking) window.BBMTracking.viewContent(pkg, { source: 'gallery_page', image_count: images.length });
       } catch(e) {
         showError('Pakej tidak dijumpai. <a href="/">Kembali ke katalog</a>');
       }
@@ -213,6 +215,10 @@
       document.getElementById('orderBasePrice').textContent = 'RM ' + price.toFixed(2);
 
       document.getElementById('orderTotal').textContent = 'RM ' + price.toFixed(2);
+      if (window.BBMTracking) {
+        window.BBMTracking.addToCart(pkg, { value: price, source: 'gallery_design_button', design_id: String(imageId) });
+        window.BBMTracking.initiateCheckout({ value: price, content_name: pkg.name, content_id: String(pkg.slug || pkg.id), design_id: String(imageId), source: 'gallery_order_modal' });
+      }
 
       // Pakej Azzahra — hide price, show finalize message
       var isAzzahra = pkg && pkg.slug === 'pakej-azzahra';
@@ -283,6 +289,10 @@
       if (!waNum.startsWith('6')) waNum = '6' + waNum;
 
       var url = 'https://wa.me/' + waNum + '?text=' + encodeURIComponent(msg);
+      if (window.BBMTracking) {
+        window.BBMTracking.lead({ value: total, content_name: pkg.name, content_id: String(pkg.slug || pkg.id), design_id: String(selectedImageId), source: 'gallery_order_submit' });
+        window.BBMTracking.contact({ value: total, content_name: pkg.name, content_id: String(pkg.slug || pkg.id), design_id: String(selectedImageId), source: 'gallery_whatsapp_submit' });
+      }
       window.open(url, '_blank');
       showToast('Order dihantar ke WhatsApp!');
       closeOrder();
