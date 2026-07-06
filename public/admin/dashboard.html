@@ -136,7 +136,7 @@
       const t=document.getElementById('tbody');
       if(!list.length){t.innerHTML='<tr><td colspan="6" style="text-align:center;padding:40px;color:#aaa;">No packages found</td></tr>';return;}
       t.innerHTML=list.map(p=>`<tr>
-        <td><img src="${p.main_image_url||'/images/placeholder.png'}" style="width:48px;height:48px;object-fit:cover;border-radius:6px;" loading="lazy" onerror="this.src='/images/placeholder.png'"></td>
+        <td><img src="${p.main_image_url||p.preview_image||'/images/placeholder.png'}" style="width:48px;height:48px;object-fit:cover;border-radius:6px;" loading="lazy" onerror="this.src='/images/placeholder.png'"></td>
         <td><strong>${p.name}</strong>${p.badge?` <span style="background:#cb9e8a;color:#fff;font-size:.6rem;padding:1px 6px;border-radius:4px;">${p.badge}</span>`:''}<br><span style="font-size:.65rem;color:#999;">${p.slug}</span></td>
         <td>${getCatName(p.category_id)}</td>
         <td>${p.promo_price?`<span style="color:#b8735a;font-weight:700;">RM${p.promo_price}</span> <span style="text-decoration:line-through;color:#bbb;font-size:.7rem;">RM${p.price}</span>`:`RM${p.price}`}</td>

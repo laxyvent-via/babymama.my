@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bbmamaadmin-v1';
+const CACHE_NAME = 'bbmamaadmin-v2';
 
 const PRECACHE_URLS = [
   '/admin/dashboard',
