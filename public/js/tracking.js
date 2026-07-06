@@ -67,20 +67,44 @@
     try { window.fbq('track', eventName, cleanPayload(payload)); } catch (e) { log('fbq error', e); }
   }
 
+  function normalizeTikTokPayload(payload) {
+    payload = cleanPayload(payload || {});
+    var contentId = String(payload.content_id || (payload.content_ids && payload.content_ids[0]) || '');
+    var contentName = payload.content_name || 'Babymama Product';
+    var contentType = payload.content_type || 'product';
+    if (!payload.contents && contentId) {
+      payload.contents = [{
+        content_id: contentId,
+        content_type: contentType,
+        content_name: contentName
+      }];
+    }
+    if (!payload.currency) payload.currency = CONFIG.currency;
+    if (payload.value !== undefined) payload.value = safeNumber(payload.value);
+    return payload;
+  }
+
   function ttTrack(eventName, payload) {
     if (!window.ttq) return;
-    try { window.ttq.track(eventName, cleanPayload(payload)); } catch (e) { log('ttq error', e); }
+    try { window.ttq.track(eventName, normalizeTikTokPayload(payload)); } catch (e) { log('ttq error', e); }
   }
 
   function productPayload(product, extra) {
     product = product || {};
     extra = extra || {};
     var price = safeNumber(product.promo_price || product.price || product.value || extra.value);
+    var contentId = String(product.slug || product.id || extra.content_id || '');
+    var contentName = product.name || extra.content_name || 'Babymama Product';
     return Object.assign({
-      content_name: product.name || extra.content_name || 'Babymama Product',
-      content_id: String(product.slug || product.id || extra.content_id || ''),
-      content_ids: [String(product.slug || product.id || extra.content_id || '')],
+      content_name: contentName,
+      content_id: contentId,
+      content_ids: [contentId],
       content_type: 'product',
+      contents: [{
+        content_id: contentId,
+        content_type: 'product',
+        content_name: contentName
+      }],
       value: price,
       currency: CONFIG.currency
     }, extra);
